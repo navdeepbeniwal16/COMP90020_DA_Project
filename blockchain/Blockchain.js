@@ -10,11 +10,15 @@ class Blockchain {
         this.chain.push(block);
     }
 
-    getBlockchainSize() { return this.chain.length; }    
+    getBlockchainSize() { return this.chain.length; }  
     
-    addBlock(transactionsBlock) {
+    getBlocks() {
+        return this.chain;
+    }
+    
+    addBlock(transactionsBlock, timestamp) {
         const prevBlockHash = this.chain[this.getBlockchainSize()-1].hash;
-        const newBlock = new Block(transactionsBlock, prevBlockHash);
+        const newBlock = new Block(transactionsBlock, prevBlockHash, timestamp);
         this.chain.push(newBlock);
     }
 

@@ -1,34 +1,49 @@
+const express = require('express');
+const app = express();
+const process = require('process');
 const Block = require('../blockchain/Block.js');
 const Blockchain = require('../blockchain/Blockchain.js');
+const bodyParser = require('body-parser')
 
-mempool = [  
-    { "sender": "Alice", "receiver": "Bob", "amount": 10 },
-    { "sender": "Charlie", "receiver": "Alice", "amount": 5 },  
-    { "sender": "Bob", "receiver": "Eve", "amount": 2 },
-    { "sender": "Dave", "receiver": "Charlie", "amount": 8 },
-    { "sender": "Eve", "receiver": "Alice", "amount": 3 }
-]
+const PORT = process.argv[2] // accessing the port provided by the user/script
+if(!PORT) {
+    console.log('Port number missing in the arguments...');
+    process.exit(0);
+}
 
-transactionsBlock = []
-transactionsBlock.push(mempool[0])
-transactionsBlock.push(mempool[1])
-transactionsBlock.push(mempool[2])
+app.use(bodyParser.json())
 
-// const block = new Block(transaction, 0);
-// block.printBlock()
+// creating a Blockchain instance (with just genesis block)
 const blockchain = new Blockchain();
 
-console.log(`At size (${blockchain.getBlockchainSize()})`);
-blockchain.printBlockchain();
+// GET api to return the current state of the blockchain
+app.get('/blockchain', (req, res) => {
+    res.json(blockchain.getBlocks());
+})
 
-blockchain.addBlock(transactionsBlock)
+// POST api to add a transaction block to the chain
+app.post('/blockchain', (req,res) => {
+    const body = req.body;
+    const transactions = body.transactions;
+    const timestamp = body.timestamp;
 
-// console.log(`At size (${blockchain.getBlockchainSize()})`);
-// blockchain.printBlockchain();
+    // TODO: Add transaction validations
 
-transactionsBlock = []
-transactionsBlock.push(mempool[3])
-transactionsBlock.push(mempool[4])
-// blockchain.chain[1].transactions = transactionsBlock; // changing transactions within a blockchain
+    // adding transactions to the blockchain
+    try {
+        blockchain.addBlock(transactions, timestamp);
+        return res.status(201).send();
+    } catch (error) {
+        return res.status(500).send();
+    }
+})
 
-console.log('Is blockchain valid? ' + blockchain.validateBlockchain());
+
+// TODO: API to validate the blockchain
+// TODO: API to update a block (to simulate an attack i.e changing a block in the blockchain)
+
+app.listen(PORT, () => {
+    console.log('Node is running on PORT: ' + PORT);
+})
+
+

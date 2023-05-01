@@ -1,8 +1,8 @@
 const cryto = require('crypto');
 
 class Block {
-    constructor(transactions, previousHash, nonce=0) {
-        this.timestamp = new Date().getTime().toLocaleString()
+    constructor(transactions, previousHash, timestamp=null, nonce=0) {
+        this.timestamp = timestamp;
         this.transactions = transactions;
         this.previousHash = previousHash;
         this.nonce = nonce
@@ -10,7 +10,8 @@ class Block {
     }
 
     generateHash() {
-        const blockContents = this.timestamp + JSON.stringify(this.transactions) + this.previousHash + this.nonce.toString();
+        let blockContents = JSON.stringify(this.transactions) + this.previousHash + this.nonce.toString();
+        if(this.timestamp) blockContents += this.timestamp; // not adding the timestamp for the genesis block
         return cryto.createHash('sha256').update(blockContents).digest('hex')
     }
 
