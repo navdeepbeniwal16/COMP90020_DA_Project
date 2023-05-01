@@ -1,0 +1,20 @@
+{
+  "name": "comp90020_da_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/navdeepbeniwal16/COMP90020_DA_Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/navdeepbeniwal16/COMP90020_DA_Project/issues"
+  },
+  "homepage": "https://github.com/navdeepbeniwal16/COMP90020_DA_Project#readme"
+}
