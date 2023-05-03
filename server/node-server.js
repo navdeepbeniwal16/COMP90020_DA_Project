@@ -76,7 +76,7 @@ app.post('/blockchain', (req,res) => {
     }
 })
 
-app.post('/syncnodes',(req,res) => {
+app.post('/registernodes',(req,res) => {
     const body = req.body;
     const address = body.address;
     const hostname = body.hostname;
@@ -88,13 +88,24 @@ app.post('/syncnodes',(req,res) => {
     }
 })
 
+app.post('/deregisternodes',(req,res) => {
+    const body = req.body;
+    const address = body.address;
+    const hostname = body.hostname;
+    if(address in workernodes){
+        delete workernodes[address];
+    }
+})
+
 app.get('/register',(req,res) => {
     registerNM();
-    
+    res.send("successfully registered");
 })
 app.get('/deregister',(req,res) => {
     deregisterNM();
+    res.send("successfully deregistered");
 })
+
 
 // TODO: API to validate the blockchain
 // TODO: API to update a block (to simulate an attack i.e changing a block in the blockchain)

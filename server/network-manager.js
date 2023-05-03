@@ -40,7 +40,7 @@ app.post('/register',(req,res) => {
         for (nodes in workernodes){
                 if (nodes != address)
                 {
-                    axios.post(`http://${nodes}/syncnodes`,{"address": address,"hostname":hostname} ,{})
+                    axios.post(`http://${nodes}/registernodes`,{"address": address,"hostname":hostname} ,{})
                     .then(response => {
                         console.log(response.data);
                     })
@@ -75,6 +75,18 @@ app.post('/deregister', (req,res) => {
         delete workernodes[address];
         console.log("after deleting the address, the worker nodes are");
         console.log(workernodes);
+        for (nodes in workernodes){
+            if (nodes != address)
+            {
+                axios.post(`http://${nodes}/deregisternodes`,{"address": address,"hostname":hostname} ,{})
+                .then(response => {
+                    console.log(response.data);
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            }
+    }
         res.send("client successfully deregistered");
     }
     else {
