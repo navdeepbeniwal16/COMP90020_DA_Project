@@ -92,9 +92,11 @@ app.post('/transactions', (req,res) => {
             transactionqueue.splice(0,3);
             res.send(transactionblock);
             
-            if (workernodes.length > 0){
+            if (Object.keys(workernodes).length > 0){
+                console.log("entered the if statement");
                 for(address in workernodes){
-                    axios.post(`${address}/blockchain`, transactionblock,{})
+                    console.log("address is "  + address);
+                    axios.post(`http://${address}/blockchain`, transactionblock,{})
                     .then(response => {
                         console.log(response.data);
                     })
