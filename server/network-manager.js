@@ -6,7 +6,8 @@ const Blockchain = require('../blockchain/Blockchain.js');
 const bodyParser = require('body-parser');
 const http = require("http");
 const axios = require("axios");
-const requestIp = require('request-ip')
+const requestIp = require('request-ip');
+const { workerData } = require("worker_threads");
 
 app.use(bodyParser.json())
 
@@ -29,20 +30,27 @@ app.post('/register',(req,res) => {
     const body = req.body;
     var address = req.socket.remoteAddress;
     address = address.replace("::ffff:","");
-    console.log("received ip address is " + address);
     const hostname = body.hostname;
-    console.log("received hostname is " + hostname);
     const remotePort = body.port;
-    console.log("received client port is "+ remotePort);
-    console.log("workernodes are ");
-    console.log(workernodes);
     address = address + ":"+remotePort;
-    console.log("address is " + address);
     if(!(address in workernodes)){
         workernodes[address]=hostname;
-        console.log("workernodes after registering the node");
-        console.log(workernodes);
-        res.send("client successfully registered");
+        res.json(workernodes);
+        console.log("syncing nodes");
+        for (nodes in workernodes){
+                if (nodes != address)
+                {
+                    axios.post(`http://${nodes}/syncnodes`,{"address": address,"hostname":hostname} ,{})
+                    .then(response => {
+                        console.log(response.data);
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+                }
+        }
+        console.log("syncing complete");
+        
     }
     else {
         res.send("Client already registered");
@@ -60,7 +68,7 @@ app.post('/deregister', (req,res) => {
     console.log("received hostname is " + hostname);
     const remotePort = body.port;
     console.log("received client port is "+ remotePort);
-    address = address + remotePort;
+    address = address +":" + remotePort;
     if(address in workernodes){
         console.log("before deleting the address, the worker nodes are");
         console.log(workernodes);

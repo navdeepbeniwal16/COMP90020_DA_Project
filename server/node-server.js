@@ -9,6 +9,8 @@ const bodyParser = require('body-parser')
 
 const networkManager = process.argv[3];
 const PORT = process.argv[2]; // accessing the port provided by the user/script
+workernodes = {};
+
 if(!PORT) {
     console.log('Port number missing in the arguments...');
     process.exit(0);
@@ -24,7 +26,11 @@ app.use(bodyParser.json())
 function registerNM () {
     axios.post(`http://${networkManager}/register`, {"hostname":os.hostname(), "port":PORT},{})
     .then(response => {
-        console.log(response.data);
+        console.log("client successfully registered");
+        resworkernodes = response.data;
+        for (nodes in resworkernodes){
+            workernodes[nodes] = resworkernodes[nodes];
+        }
     })
     .catch(error => {
         console.error(error);
@@ -40,6 +46,7 @@ function deregisterNM(){
         console.error(error);
     })
 }
+
 
 
 
@@ -69,10 +76,23 @@ app.post('/blockchain', (req,res) => {
     }
 })
 
-app.post('register',(res,req) => {
-    registerNM();
+app.post('/syncnodes',(req,res) => {
+    const body = req.body;
+    const address = body.address;
+    const hostname = body.hostname;
+    if(!(address in workernodes)){
+        workernodes[address]=hostname;
+        var ownaddress = req.socket.localAddress;
+        ownaddress = ownaddress.replace("::ffff:","");
+        res.send(ownaddress+":"+PORT+" successfully added the new node "+address+ " in the list");
+    }
 })
-app.post('/deregister',(res,req) => {
+
+app.get('/register',(req,res) => {
+    registerNM();
+    
+})
+app.get('/deregister',(req,res) => {
     deregisterNM();
 })
 
