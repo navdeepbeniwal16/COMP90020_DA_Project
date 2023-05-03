@@ -20,6 +20,30 @@ if(!networkManager){
 
 app.use(bodyParser.json())
 
+// register and deregister functions 
+function registerNM () {
+    axios.post(`http://${networkManager}/register`, {"hostname":os.hostname(), "port":PORT},{})
+    .then(response => {
+        console.log(response.data);
+    })
+    .catch(error => {
+        console.error(error);
+    })
+}
+
+function deregisterNM(){
+    axios.post(`http://${networkManager}/deregister`,{"hostname":os.hostname(), "port":PORT},{})
+    .then(response => {
+        console.log(response.data);
+    })
+    .catch(error => {
+        console.error(error);
+    })
+}
+
+
+
+
 // creating a Blockchain instance (with just genesis block)
 const blockchain = new Blockchain();
 
@@ -45,33 +69,20 @@ app.post('/blockchain', (req,res) => {
     }
 })
 
+app.post('register',(res,req) => {
+    registerNM();
+})
+app.post('/deregister',(res,req) => {
+    deregisterNM();
+})
 
 // TODO: API to validate the blockchain
 // TODO: API to update a block (to simulate an attack i.e changing a block in the blockchain)
-
-function registerNM () {
-    axios.post(`http://${networkManager}/register`, {"hostname":os.hostname()},{})
-    .then(response => {
-        console.log(response.data);
-    })
-    .catch(error => {
-        console.error(error);
-    })
-}
-
-function deregisterNM(){
-    axios.post(`http://${networkManager}/deregister`,{"hostname":os.hostname()},{})
-    .then(response => {
-        console.log(response.data);
-    })
-    .catch(error => {
-        console.error(error);
-    })
-}
-
 
 app.listen(PORT, () => {
     console.log('Blockchain node is running on PORT: ' + PORT);
 })
 
+console.log("registering with the network manager");
+registerNM();
 

@@ -27,21 +27,47 @@ function getTransactionBlockLength() {
 app.post('/register',(req,res) => {
     console.log("register function");
     const body = req.body;
-    const address = requestIp.getClientIp(req);
+    var address = req.socket.remoteAddress;
+    address = address.replace("::ffff:","");
+    console.log("received ip address is " + address);
     const hostname = body.hostname;
-
+    console.log("received hostname is " + hostname);
+    const remotePort = body.port;
+    console.log("received client port is "+ remotePort);
+    console.log("workernodes are ");
+    console.log(workernodes);
+    address = address + ":"+remotePort;
+    console.log("address is " + address);
     if(!(address in workernodes)){
         workernodes[address]=hostname;
+        console.log("workernodes after registering the node");
+        console.log(workernodes);
+        res.send("client successfully registered");
     }
+    else {
+        res.send("Client already registered");
+    }
+    
 })
 
 app.post('/deregister', (req,res) => {
     console.log("deregister function");
     const body = req.body;
-    const address = requestIp.getClientIp(req);
+    var address = req.socket.remoteAddress;
+    address = address.replace("::ffff:","");
+    console.log("received ip address is " + address);
     const hostname = body.hostname;
+    console.log("received hostname is " + hostname);
+    const remotePort = body.port;
+    console.log("received client port is "+ remotePort);
+    address = address + remotePort;
     if(address in workernodes){
+        console.log("before deleting the address, the worker nodes are");
+        console.log(workernodes);
         delete workernodes[address];
+        console.log("after deleting the address, the worker nodes are");
+        console.log(workernodes);
+        res.send("client successfully deregistered");
     }
     else {
         console.log("could not find the address in the registery to deregister");
@@ -67,8 +93,8 @@ app.post('/transactions', (req,res) => {
             res.send(transactionblock);
             
             if (workernodes.length > 0){
-                for(keys in workernodes){
-                    axios.post(`${keys}/blockchain`, transactionblock,{})
+                for(address in workernodes){
+                    axios.post(`${address}/blockchain`, transactionblock,{})
                     .then(response => {
                         console.log(response.data);
                     })
