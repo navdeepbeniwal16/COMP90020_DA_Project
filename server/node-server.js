@@ -3,11 +3,18 @@ const app = express();
 const process = require('process');
 const Block = require('../blockchain/Block.js');
 const Blockchain = require('../blockchain/Blockchain.js');
+const axios = require('axios');
+const os = require('os');
 const bodyParser = require('body-parser')
 
-const PORT = process.argv[2] // accessing the port provided by the user/script
+const networkManager = process.argv[3];
+const PORT = process.argv[2]; // accessing the port provided by the user/script
 if(!PORT) {
     console.log('Port number missing in the arguments...');
+    process.exit(0);
+}
+if(!networkManager){
+    console.log("Network Manager not provided, please provide the network manager's ip address along with port");
     process.exit(0);
 }
 
@@ -42,8 +49,29 @@ app.post('/blockchain', (req,res) => {
 // TODO: API to validate the blockchain
 // TODO: API to update a block (to simulate an attack i.e changing a block in the blockchain)
 
+function registerNM () {
+    axios.post(`http://${networkManager}/register`, {"hostname":os.hostname()},{})
+    .then(response => {
+        console.log(response.data);
+    })
+    .catch(error => {
+        console.error(error);
+    })
+}
+
+function deregisterNM(){
+    axios.post(`http://${networkManager}/deregister`,{"hostname":os.hostname()},{})
+    .then(response => {
+        console.log(response.data);
+    })
+    .catch(error => {
+        console.error(error);
+    })
+}
+
+
 app.listen(PORT, () => {
-    console.log('Node is running on PORT: ' + PORT);
+    console.log('Blockchain node is running on PORT: ' + PORT);
 })
 
 
