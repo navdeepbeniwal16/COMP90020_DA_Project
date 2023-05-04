@@ -22,7 +22,7 @@ let producerNode = null;
 let validatorNodes = {};
 let validationsReceived = 0;
 let isBlockValidated = false;
-let validatorPercentage = 10;
+let validatorPercentage = 50;
 let stakeReward = 2;
 
 // stake generator
@@ -69,22 +69,26 @@ function getTransactionBlockLength() {
     return transactionqueue.length;
 }
 
-function pickProducerNode(validatorsArg) {
-    const validatorNodesIds = Object.keys(validatorsArg);
-    if(workerNodesIds.length === 0) {
+function pickProducerNode(nodes) {
+    const validatorNodesIds = Object.keys(nodes);
+    if(validatorNodesIds.length === 0) {
         throw new Error('No worker nodes registered on the system');
     }
-    MaxStake = 0;
-    var producerSocket = null;
-    for (nodesockets in validatorsArg){
-        if (validatorsArg[nodesockets]["stake"]>MaxStake){
-            MaxStake = validatorsArg[nodesockets]["stake"];
-            producerSocket = nodesockets;
+    console.log('Checkpoint 3'); // TODO: TBR
+    let MAX_STAKE = 0;
+    let producerSocketId = null;
+    for (const nodeId in nodes){
+        if (nodes[nodeId]["stake"]>MAX_STAKE){
+            MAX_STAKE = nodes[nodeId]["stake"];
+            producerSocketId = nodeId;
         }
     }
+    console.log('Checkpoint 4'); // TODO: TBR
     //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
-    workernodes[ProducerSocket]['stake']=workernodes[ProducerNode]['stake']+stakeReward;
-    return validatorsArg[producerSocket]['socket'];
+    workernodes[producerSocketId]['stake']=workernodes[producerSocketId]['stake']+stakeReward;
+    const selectedProducerNode = nodes[producerSocketId]['socket']
+    delete validatorNodes[producerSocketId];
+    return selectedProducerNode;
 }
 
 function pickValidatorsNodes(){
@@ -108,6 +112,7 @@ function pickValidatorsNodes(){
         validators[chosenNodeId] = workerNodesCopy[chosenNodeId];
         workerNodesIds.splice(chosenNodeId,1);
     }
+    console.log('Check point!') // TODO: TBR
     
     return validators;
 }
@@ -120,7 +125,11 @@ function conductElection() {
     
     //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
     validatorNodes = pickValidatorsNodes();
+    console.log('Checkpoint 2!'); // TODO: TBR
     producerNode = pickProducerNode(validatorNodes);
+
+    console.log(`Producer Node : ${producerNode.id}`);
+    console.log(`Validator Nodes : ${Object.keys(validatorNodes)}`);
 
     /*
     for(let nIndex=0; nIndex < workerNodesIds.length; nIndex++) {

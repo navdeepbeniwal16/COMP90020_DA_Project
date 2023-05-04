@@ -96,10 +96,19 @@ networkManagerConnection.on('validate-block', (forgedBlockData) => {
 
 networkManagerConnection.on('commit-block', () => {
     console.log(`Commit message received by Node ${networkManagerConnection.id}`);
-    const blockToCommit = blockchain.unverifiedChainBlocks[0];
+    let blockToCommit = null;
+
+    if(blockchain.unverifiedChainBlocks.length > 0) {
+        blockToCommit = blockchain.unverifiedChainBlocks[0];
+    } else {
+        const  transactionsBlock = blockchain.unverifiedTransactionsBlocks[0];
+        blockToCommit = blockchain.forgeBlock(transactionsBlock);
+    }
+
     try {
         blockchain.commitBlock(blockToCommit);
         blockchain.unverifiedChainBlocks = [];
+        blockchain.unverifiedTransactionsBlocks = [];
         console.log(`Node ${networkManagerConnection.id} commited block with id : ${blockToCommit.id}`);
     } catch (error) {
         console.log(`Error occured while commiting a block... \n${error.message}`);
