@@ -1,7 +1,9 @@
+const { v4: uuidv4 } = require('uuid');
 const cryto = require('crypto');
 
 class Block {
     constructor(transactions, previousHash, timestamp=null, nonce=0) {
+        this.id = uuidv4();
         this.timestamp = timestamp;
         this.transactions = transactions;
         this.previousHash = previousHash;
@@ -17,12 +19,24 @@ class Block {
 
     printBlock() {
         console.log(`Block {
+            id: ${this.id},
             timestamp: ${this.timestamp},
             transactions: ${JSON.stringify(this.transactions)},
             previousHash: ${this.previousHash},
             nonce: ${this.nonce},
             hash: ${this.hash}
         }`);
+    }
+
+    toJSON() {
+        return {
+            "id": this.id,
+            "timestamp" : this.timestamp,
+            "transactions" : JSON.stringify(this.transactions),
+            "previousHash" : this.previousHash,
+            "nonce" : this.nonce,
+            "hash" : this.hash
+        }
     }
 }
 

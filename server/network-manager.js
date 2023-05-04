@@ -23,15 +23,31 @@ workernodes = {};
 ioServer.on('connection', (socket) => {
     console.log(`Blockchain node with id : ${socket.id} registering with network-manager`);
     workernodes[socket.id] = socket;
+    
     socket.on('disconnect', () => {
         console.log(`Blockchain node with id : ${socket.id} deregistering with network-manager`);
         delete workernodes[socket.id]
     });
+
+    socket.on('forged-block', (forgedBlock) => {
+        console.log(`Forged block received from the ${socket.id}`);
+        console.log(forgedBlock);
+    })
 })
 
 function getTransactionBlockLength() {
     console.log(`${transactionqueue.length}`);
     return transactionqueue.length;
+}
+
+function pickProducerNode() {
+    const workerNodesIds = Object.keys(workernodes);
+    if(workerNodesIds.length === 0) {
+        throw new Error('No worker nodes registered on the system');
+    }
+    
+    const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
+    return workernodes[chosenNodeId];
 }
 
 // Rest APIs to access the network-manager
@@ -61,12 +77,17 @@ app.post('/network/transactions', (req,res) => {
             transactionqueue.splice(0,3);
             
             if (Object.keys(workernodes).length > 0){
-                console.log("entered the if statement");
+                console.log("Sending transaction block to blockchain nodes to be pooled.");
                 for(const nodeId in workernodes){
                     const node = workernodes[nodeId];
-                    console.log("Node id is "  + node.id);
-                    node.emit('post-transaction-block', transactionblock)
-                }    
+                    console.log("Sending to Node id : "  + node.id);
+                    node.emit('pool-transaction-block', transactionblock)
+                }  
+                
+                // Sending a 'forge' message to a selected producer node
+                const producerNode = pickProducerNode();
+                console.log("Sending to Producer Node (id) : "  + producerNode.id);
+                producerNode.emit('forge-transaction-block');
             }
             else {
                 console.log("no workers nodes registered with the network manager");

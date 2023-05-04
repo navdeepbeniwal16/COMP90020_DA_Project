@@ -29,22 +29,39 @@ let networkManagerConnection = ioClient.connect(NM_URL, () => {
     console.log('Connection with network manager is established');
 });
 
-networkManagerConnection.on('post-transaction-block', (transactionblock) => {
-    console.log('Transaction block sent by the network manager');
+networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
+    console.log('Transaction block (to pool) sent by the network manager');
     console.log(transactionblock)
-
-    const transactions = transactionblock.transactions;
-    const timestamp = transactionblock.timestamp;
-
-    // TODO: Add transaction validations
 
     // adding transactions to the blockchain
     try {
-        blockchain.addBlock(transactions, timestamp);
-        console.log('Transaction block added to the chain...');
-        console.log(`Current chain size : ${blockchain.getBlockchainSize()}`);
+        const transactions = transactionblock.transactions;
+        
+        // Validating blockchain
+        blockchain.validateBlockchain();
+
+        // Validating the transactions
+        blockchain.validateTransactions(transactions);
+
+        // Pooling transaction block to forge later
+        blockchain.poolUnverifiedTransactionsBlocks(transactionblock);
+        console.log('Transaction block added to the unverified transactions chain...');
+        console.log(`Current unverified transaction blocks size : ${blockchain.getUnverifiedTransactionsBlocksSize()}`);
     } catch (error) {
         console.log('Error occured while adding transaction block to the blockchain...');
+        console.log(error.message);
+    }
+})
+
+networkManagerConnection.on('forge-transaction-block', () => {
+    try {
+        const forgedBlock = blockchain.forgeBlock();
+        networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
+        console.log(`Forged block on Node : ${networkManagerConnection.id}`);
+        console.log(forgedBlock.toJSON());
+    } catch (error) {
+        console.log('Error occured while forging a block...');
+        console.log(error.message);
     }
 })
 
