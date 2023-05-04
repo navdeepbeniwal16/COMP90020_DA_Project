@@ -11,6 +11,7 @@ app.use(bodyParser.json())
 
 transactionqueue = [];
 transactionblock = [];
+validatorPercentage = 10;
 const PORT = process.argv[2]
 if(!PORT) {
     console.log('Port number missing in the arguments...');
@@ -50,6 +51,31 @@ function pickProducerNode() {
     return workernodes[chosenNodeId];
 }
 
+function pickValidatorsNodes(){
+    const workerNodesCopy = {};
+    Object.assign(workerNodesCopy, workernodes);
+    const workerNodesIds = Object.keys(workerNodesCopy);
+    const sizeOfWorkerNodes = Object.keys(workerNodesCopy).length
+    const sizeOfValidatorsNodes = Math.ceil(sizeOfWorkerNodes*validatorPercentage/100);
+    if(workerNodesIds.length === 0) {
+        throw new Error('No worker nodes registered on the system');
+    }
+    else if (sizeOfValidatorsNodes == 0){
+        sizeOfValidatorsNodes = 1;
+    }
+    
+    console.log("this is the else statement of the validator function");
+        
+    validators = []
+    for (let i = 0; i < sizeOfValidatorsNodes; i++){
+        const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)]
+        validators.push(workerNodesCopy[chosenNodeId]);
+        workerNodesIds.splice(chosenNodeId,1);
+    }
+    
+    return validators;
+}
+
 // Rest APIs to access the network-manager
 app.get('/network/nodes', (req, res) => {
     res.send({'registeredNodes' : Object.keys(workernodes)});
@@ -85,7 +111,8 @@ app.post('/network/transactions', (req,res) => {
                 }  
                 
                 // Sending a 'forge' message to a selected producer node
-                const producerNode = pickProducerNode();
+                const validators = pickValidatorsNodes();
+                const producerNode = pickProducerNode(validators);
                 console.log("Sending to Producer Node (id) : "  + producerNode.id);
                 producerNode.emit('forge-transaction-block');
             }
