@@ -18,6 +18,10 @@ if(!PORT) {
 }
 
 workernodes = {};
+let producerNode = null;
+let validatorNodes = [];
+let validationsReceived = 0;
+let isBlockValidated = false;
 
 // registering/deregistering a blockchain node
 ioServer.on('connection', (socket) => {
@@ -32,6 +36,25 @@ ioServer.on('connection', (socket) => {
     socket.on('forged-block', (forgedBlock) => {
         console.log(`Forged block received from the ${socket.id}`);
         console.log(forgedBlock);
+
+        for(let nIndex=0; nIndex < validatorNodes.length; nIndex++) {
+            const node = workernodes[validatorNodes[nIndex]];
+            node.emit('validate-block', JSON.parse(JSON.stringify(forgedBlock)));
+        }
+    })
+
+    socket.on('valid-block', () => {
+        console.log(`Blockchain node with id : ${socket.id} validated the block`);
+        validationsReceived++;
+
+        if(validationsReceived >= (2/3) * validatorNodes.length && !isBlockValidated) {
+            isBlockValidated = true;
+            const nodeIds = Object.keys(workernodes);
+            for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
+                const node = workernodes[nodeIds[nIndex]];
+                node.emit('commit-block');
+            }
+        }
     })
 })
 
@@ -40,14 +63,21 @@ function getTransactionBlockLength() {
     return transactionqueue.length;
 }
 
-function pickProducerNode() {
+function conductElection() {
     const workerNodesIds = Object.keys(workernodes);
     if(workerNodesIds.length === 0) {
         throw new Error('No worker nodes registered on the system');
     }
     
     const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
-    return workernodes[chosenNodeId];
+    producerNode = workernodes[chosenNodeId]
+
+    validatorNodes = [];
+    for(let nIndex=0; nIndex < workerNodesIds.length; nIndex++) {
+        if(workerNodesIds[nIndex] !== chosenNodeId) {
+            validatorNodes.push(workerNodesIds[nIndex]);
+        }
+    }
 }
 
 // Rest APIs to access the network-manager
@@ -65,6 +95,9 @@ app.post('/network/transactions', (req,res) => {
     try {
         transactionqueue.push(transaction);
         if (getTransactionBlockLength() >= 3){
+            // conduct election before sending out the data to the blocks
+            conductElection();
+
             //send to the node-server
             
             // creating a transaction block
@@ -85,7 +118,6 @@ app.post('/network/transactions', (req,res) => {
                 }  
                 
                 // Sending a 'forge' message to a selected producer node
-                const producerNode = pickProducerNode();
                 console.log("Sending to Producer Node (id) : "  + producerNode.id);
                 producerNode.emit('forge-transaction-block');
             }

@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const process = require('process');
 const Blockchain = require('../blockchain/Blockchain.js');
+const Block = require('../blockchain/Block.js')
 const bodyParser = require('body-parser')
 const ioClient = require('socket.io-client');
 
@@ -55,13 +56,53 @@ networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
 
 networkManagerConnection.on('forge-transaction-block', () => {
     try {
-        const forgedBlock = blockchain.forgeBlock();
+        if(blockchain.getUnverifiedTransactionsBlocksSize() == 0) {
+            throw new Error('No transaction block available to be forged');
+        }
+
+        const transactionsBlock = blockchain.unverifiedTransactionsBlocks[0];
+        const forgedBlock = blockchain.forgeBlock(transactionsBlock);
+        blockchain.unverifiedChainBlocks.push(forgedBlock);
+        blockchain.unverifiedTransactionsBlocks = []; // empting the unverified transactions pool
+
         networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
-        console.log(`Forged block on Node : ${networkManagerConnection.id}`);
-        console.log(forgedBlock.toJSON());
+        console.log(`Forged block on Node : ${networkManagerConnection.id} :\n ${forgedBlock.toJSON()}`);
     } catch (error) {
-        console.log('Error occured while forging a block...');
-        console.log(error.message);
+        console.log(`Error occured while forging a block... \n${error.message}`);
+        // TODO: Emit some message to Network Manager
+    }
+})
+
+networkManagerConnection.on('validate-block', (forgedBlockData) => {
+    const forgedBlockJSON = JSON.parse(JSON.stringify(forgedBlockData));
+    console.log(`Forged block received on Validation Node : ${networkManagerConnection.id} :\n ${forgedBlockJSON}`); // TODO: TBR
+    
+    const transactionBlock = blockchain.unverifiedTransactionsBlocks[0]; // TODO: Fix problem here
+    console.log('Transaction block (on validation node) :')
+    console.log(transactionBlock)
+
+    const forgedBlock = Block.createBlockFromJSON(forgedBlockJSON);
+    if(blockchain.validateBlock(transactionBlock, forgedBlock)) {
+        console.log(`Block with id : ${forgedBlock.id} is : Valid`);
+        blockchain.unverifiedTransactionsBlocks = [];
+        blockchain.unverifiedChainBlocks.push(forgedBlock);
+
+        networkManagerConnection.emit('valid-block');
+    } else {
+        console.log(`Block with id : ${forgedBlock.id} is : Invalid`);
+        networkManagerConnection.emit('invalid-block');
+    }
+})
+
+networkManagerConnection.on('commit-block', () => {
+    console.log(`Commit message received by Node ${networkManagerConnection.id}`);
+    const blockToCommit = blockchain.unverifiedChainBlocks[0];
+    try {
+        blockchain.commitBlock(blockToCommit);
+        blockchain.unverifiedChainBlocks = [];
+        console.log(`Node ${networkManagerConnection.id} commited block with id : ${blockToCommit.id}`);
+    } catch (error) {
+        console.log(`Error occured while commiting a block... \n${error.message}`);
     }
 })
 

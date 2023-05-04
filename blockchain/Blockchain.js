@@ -29,29 +29,24 @@ class Blockchain {
         this.unverifiedTransactionsBlocks.push(transactionBlock);
     }
 
-    forgeBlock() {
-        if(this.getUnverifiedTransactionsBlocksSize() == 0) {
-            throw new Error('No transaction block available to be forged');
-        }
-
-        const transactionsBlock = this.unverifiedTransactionsBlocks[0];
-        console.log('Transaction block (from unverified transactions) : '); // TODO: TBR
-        console.log(transactionsBlock); // TODO: TBR
+    forgeBlock(transactionBlock) {
         const prevBlockHash = this.chain[this.getChainSize()-1].hash;
-        const newBlock = new Block(transactionsBlock.transactions, prevBlockHash, transactionsBlock.timestamp);
-        this.unverifiedChainBlocks.push(newBlock);
-        this.unverifiedTransactionsBlocks = [];
-
+        const newBlock = new Block(transactionBlock.transactions, prevBlockHash, transactionBlock.timestamp);
         return newBlock;
     }
 
-    validateBlock(block) {
-        // TODO
-        
+    validateBlock(transactionBlock, block) {
+        // check if their own forged block is same as the one sent by the network node
+        const forgedBlock = this.forgeBlock(transactionBlock);
+        if(block.hash !== forgedBlock.generateHash()) {
+            return false;
+        }
+
+        return true;
     }
     
-    commitBlock(transactionsBlock, timestamp) {
-        // TODO
+    commitBlock(block) {
+        this.chain.push(block)
     }
 
     validateTransactions(transactions) {

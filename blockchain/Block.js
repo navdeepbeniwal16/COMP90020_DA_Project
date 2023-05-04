@@ -38,6 +38,16 @@ class Block {
             "hash" : this.hash
         }
     }
+
+    static createBlockFromJSON(blockJSON) {
+        if(!(blockJSON.transactions && blockJSON.timestamp && blockJSON.hash && blockJSON.previousHash)) {
+            throw new Error('Required attributes missing');
+        }
+
+        const newBlock = new Block(blockJSON.transactions, blockJSON.previousHash, blockJSON.timestamp);
+        newBlock.hash = blockJSON.hash;
+        return newBlock;
+    }
 }
 
 module.exports = Block;
