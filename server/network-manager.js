@@ -12,6 +12,7 @@ app.use(bodyParser.json())
 transactionqueue = [];
 transactionblock = [];
 validatorPercentage = 10;
+stakeReward = 2;
 const PORT = process.argv[2]
 if(!PORT) {
     console.log('Port number missing in the arguments...');
@@ -20,10 +21,16 @@ if(!PORT) {
 
 workernodes = {};
 
+// stake generator
+
+function stakegenerator(){
+    return Math.floor(Math.random()*100);
+}
+
 // registering/deregistering a blockchain node
 ioServer.on('connection', (socket) => {
     console.log(`Blockchain node with id : ${socket.id} registering with network-manager`);
-    workernodes[socket.id] = socket;
+    workernodes[socket.id] = {"socket":socket,"stake":stakegenerator()};
     
     socket.on('disconnect', () => {
         console.log(`Blockchain node with id : ${socket.id} deregistering with network-manager`);
@@ -41,14 +48,22 @@ function getTransactionBlockLength() {
     return transactionqueue.length;
 }
 
-function pickProducerNode() {
-    const workerNodesIds = Object.keys(workernodes);
+function pickProducerNode(validatorsArg) {
+    const validatorNodesIds = Object.keys(validatorsArg);
     if(workerNodesIds.length === 0) {
         throw new Error('No worker nodes registered on the system');
     }
-    
-    const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
-    return workernodes[chosenNodeId];
+    MaxStake = 0;
+    var ProducerNode = 0;
+    for (nodesockets in validatorsArg){
+        if (validatorsArg[nodesockets]["stake"]>MaxStake){
+            MaxStake = validatorsArg[nodesockets]["stake"];
+            ProducerNode = nodesockets;
+        }
+    }
+    //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
+    workernodes[ProducerNode]['stake']=workernodes[ProducerNode]['stake']+stakeReward;
+    return validatorsArg[producerNode]['socket'];
 }
 
 function pickValidatorsNodes(){
@@ -66,10 +81,10 @@ function pickValidatorsNodes(){
     
     console.log("this is the else statement of the validator function");
         
-    validators = []
+    validators = {}
     for (let i = 0; i < sizeOfValidatorsNodes; i++){
         const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)]
-        validators.push(workerNodesCopy[chosenNodeId]);
+        validators = workerNodesCopy[chosenNodeId];
         workerNodesIds.splice(chosenNodeId,1);
     }
     
