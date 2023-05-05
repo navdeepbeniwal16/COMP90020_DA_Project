@@ -29,7 +29,6 @@ function attachPublisherEventListeners(socket) {
 }
 
 logManagerServerSocket.on('connection', (socket) => {
-    console.log('Socket handshake data : ' + JSON.stringify(socket.handshake));
     if(socket.handshake.headers.type === 'publisher') {
         console.log(`Socket request recieved from publishing node ${socket.id}`);
         publisherNodes[socket.id] = socket;

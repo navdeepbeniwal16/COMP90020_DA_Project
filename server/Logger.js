@@ -42,8 +42,9 @@ const EventType = {
         InvalidatedBlock : 'InvalidatedBlock',
         ValidatedBlockchain : 'ValidatedBlockchain',
         DiscardedBlock : 'DiscardedBlock',
-        CommittedBlock : 'CommittedBlock'
-
+        CommittedBlock : 'CommittedBlock',
+        SendValidatedBlockchain : 'SendValidatedBlockchain',
+        AddedValidatedBlockchain : 'AddedValidatedBlockchain',
     },
     NetworkEventType: {
         RegisteredBlockchainNode: 'RegisteredBlockchainNode',
@@ -59,7 +60,9 @@ const EventType = {
         InvalidatingBlock : 'InvalidatingBlock',
         ValidatingBlockchain : 'ValidatingBlockchain',
         DiscardingBlock : 'DiscardingBlock',
-        CommittingBlock : 'CommittingBlock'
+        CommittingBlock : 'CommittingBlock',
+        SendingValidatedBlockchain : 'SendingValidatedBlockchain',
+        AddingValidatedBlockchain : 'AddingValidatedBlockchain',
     },
     Error : 'Error'
 };

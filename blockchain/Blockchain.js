@@ -7,8 +7,6 @@ class Blockchain {
     chain = [];
 
     constructor() {
-        console.log("hannan checkpoint 6 genesis seed hash value"); //TODO: TBR
-        console.log(Blockchain.GENESIS_SEED_HASH);
         const block = new Block([], Blockchain.GENESIS_SEED_HASH);
         this.chain.push(block);
     }
