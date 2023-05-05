@@ -66,58 +66,114 @@ ioServer.on('connection', (socket) => {
             listValidBlockchainReceived[socket.id]={"Status":"True","Size":Object.keys(validatedBlockchain["chain"]).length};
             blockchainReceived[socket.id] = validatedBlockchain;
         }
+        
+        if(newNode){
+            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1){
+                var validatedBlockchainReceived=0;
+                for (const status in listValidBlockchainReceived){
+                    if(listValidBlockchainReceived[status]["Status"] == "True"){
+                        validatedBlockchainReceived++;
+                    }
+                }
+                if (validatedBlockchainReceived >= Math.floor(2/3*Object.keys(workernodes).length)){
+                    var blockchainStatus = "True";
+                    blockConsensus = 0;
+                    for( const socketIDs in blockchainReceived){
+                        for (let blockindex = 0; blockindex < listValidBlockchainReceived[socketIDs]["Size"]; blockindex++){
+                            for(const secondIds in blockchainReceived){
+                                if (blockchainReceived[socketIDs]["chain"][blockindex]["hash"] == blockchainReceived[secondIds]["chain"][blockindex]["hash"]){
 
-        if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1){
-            var validatedBlockchainReceived=0;
-            for (const status in listValidBlockchainReceived){
-                if(listValidBlockchainReceived[status]["Status"] == "True"){
-                    validatedBlockchainReceived++;
+                                    blockConsensus++;
+                                }
+                            }
+                            
+                            if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
+                                console.log("block is correct"); //TODO: TBR
+                            }
+                            else {
+                                console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
+                                blockchainStatus = "False";
+                                
+                            }
+                            blockConsensus = 0;
+                        }
+                        if (blockchainStatus == "True"){
+                            console.log("hannan checkpoint 3"); //TODO : TBR
+                            console.log(blockchainReceived[socketIDs]);
+                            Object.assign(blockchain, blockchainReceived[socketIDs]);
+                            console.log("blockchain is correct"); //TODO : TBR
+                            console.log("validated blockchain after validation is"); //TODO : TBR
+                            console.log(blockchain); //TODO: TBR
+                            console.log("hannan checkpoint before workernodes[newNode]['socket']");
+                            console.log(newNode);
+                            newNodeSocket = workernodes[newNode]["socket"];
+                            newNodeSocket.emit("add-validated-blockchain", blockchain);
+                            blockchain = {};
+                            listValidBlockchainReceived = {};
+                            blockchainReceived = {};
+                            newNode = null;
+                            break;
+                        }
+                    }
                 }
             }
-            if (validatedBlockchainReceived >= Math.floor(2/3*Object.keys(workernodes).length)){
-                var blockchainStatus = "True";
-                blockConsensus = 0;
-                for( const socketIDs in blockchainReceived){
-                    for (let blockindex = 0; blockindex < listValidBlockchainReceived[socketIDs]["Size"]; blockindex++){
-                        for(const secondIds in blockchainReceived){
-                            if (blockchainReceived[socketIDs]["chain"][blockindex]["hash"] == blockchainReceived[secondIds]["chain"][blockindex]["hash"]){
-
-                                blockConsensus++;
-                            }
-                        }
-                        
-                        if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
-                            console.log("block is correct"); //TODO: TBR
-                        }
-                        else {
-                            console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
-                            blockchainStatus = "False";
-                            
-                        }
-                        blockConsensus = 0;
-                    }
-                    if (blockchainStatus == "True"){
-                        console.log("hannan checkpoint 3"); //TODO : TBR
-                        console.log(blockchainReceived[socketIDs]);
-                        Object.assign(blockchain, blockchainReceived[socketIDs]);
-                        console.log("blockchain is correct"); //TODO : TBR
-                        console.log("validated blockchain after validation is"); //TODO : TBR
-                        console.log(blockchain); //TODO: TBR
-                        console.log("hannan checkpoint before workernodes[newNode]['socket']");
-                        console.log(newNode);
-                        newNodeSocket = workernodes[newNode]["socket"];
-                        newNodeSocket.emit("add-validated-blockchain", blockchain);
-                        blockchain = {};
-                        listValidBlockchainReceived = {};
-                        blockchainReceived = {};
-                        newNode = null;
-                        break;
-                    }
-                }
+            else {
+                console.log("waiting for other worker nodes to send their blockchain");
             }
         }
-        else {
-            console.log("waiting for other worker nodes to send their blockchain");
+        else if (Object.keys(invalidvalidators).length != 0){
+            let remainingNodes = Object.keys(workernodes).length - Object.keys(invalidvalidators).length
+            if(Object.keys(listValidBlockchainReceived).length == remainingNodes){
+                var validatedBlockchainReceived=0;
+                for (const status in listValidBlockchainReceived){
+                    if(listValidBlockchainReceived[status]["Status"] == "True"){
+                        validatedBlockchainReceived++;
+                    }
+                }
+                if (validatedBlockchainReceived >= Math.floor(2/3*remainingNodes)){
+                    var blockchainStatus = "True";
+                    blockConsensus = 0;
+                    for( const socketIDs in blockchainReceived){
+                        for (let blockindex = 0; blockindex < listValidBlockchainReceived[socketIDs]["Size"]; blockindex++){
+                            for(const secondIds in blockchainReceived){
+                                if (blockchainReceived[socketIDs]["chain"][blockindex]["hash"] == blockchainReceived[secondIds]["chain"][blockindex]["hash"]){
+
+                                    blockConsensus++;
+                                }
+                            }
+                            
+                            if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
+                                console.log("block is correct"); //TODO: TBR
+                            }
+                            else {
+                                console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
+                                blockchainStatus = "False";
+                                
+                            }
+                            blockConsensus = 0;
+                        }
+                        if (blockchainStatus == "True"){
+                            console.log("hannan checkpoint 3"); //TODO : TBR
+                            console.log(blockchainReceived[socketIDs]);
+                            Object.assign(blockchain, blockchainReceived[socketIDs]);
+                            console.log("blockchain is correct"); //TODO : TBR
+                            console.log("validated blockchain after validation is"); //TODO : TBR
+                            console.log(blockchain); //TODO: TBR
+                            for(nodeid in invalidvalidators){
+                                invalidvalidators[nodeid].emit("add-validated-blockchain", blockchain);
+                            }
+                            invalidvalidators = {}
+                            blockchain = {};
+                            listValidBlockchainReceived = {};
+                            blockchainReceived = {};
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                console.log("waiting for other worker nodes to send their blockchain");
+            }
         }
 
     })
@@ -191,6 +247,16 @@ ioServer.on('connection', (socket) => {
 function getTransactionBlockLength() {
     console.log(`${transactionqueue.length}`);
     return transactionqueue.length;
+}
+
+function correctinginvalidvalidators(){
+
+    for (const nodeId in workernodes){
+        if (!(nodeId in invalidvalidators)){
+            const node = workernodes[nodeId]['socket'];
+            node.emit("send-validated-blockchain");
+        }
+    }
 }
 
 function pickProducerNode(nodes) {
