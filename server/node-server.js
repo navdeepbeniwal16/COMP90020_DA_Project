@@ -3,6 +3,7 @@ const app = express();
 const process = require('process');
 const Blockchain = require('../blockchain/Blockchain.js');
 const Block = require('../blockchain/Block.js')
+const { Logger, NodeType, EventType } = require('./Logger.js');
 const bodyParser = require('body-parser')
 const ioClient = require('socket.io-client');
 
@@ -19,6 +20,8 @@ if(!NM_PORT){
 }
 const NM_URL = NM_HOSTNAME + ":" + NM_PORT;
 
+let logManagerConnection = ioClient.connect('http://localhost:8081', { extraHeaders: { type: "publisher" }});
+
 // Injecting Middlewares
 app.use(bodyParser.json())
 
@@ -29,6 +32,13 @@ const blockchain = new Blockchain();
 let networkManagerConnection = ioClient.connect(NM_URL, () => {
     console.log('Connection with network manager is established');
 });
+
+const logger = new Logger(networkManagerConnection.id, NodeType.Blockchain);
+let logMessage = null;
+let logData = {};
+logMessage = logger.createLogMessage(EventType.NetworkEventType.RegisteredBlockchainNode, `Blockchain node with id ${networkManagerConnection.id} registering onto the network`);
+logManagerConnection.emit('produce-log', logMessage);
+
 function synchronizingBlockchain(blockchainArg){
     
     blockchain.unverifiedTransactionsBlocks = blockchainArg.unverifiedTransactionsBlocks;
@@ -46,10 +56,14 @@ function synchronizingBlockchain(blockchainArg){
     console.log("blockchain after synchronization is");
     console.log(blockchain);
 }
-networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
-    console.log('Transaction block (to pool) sent by the network manager');
-    console.log(transactionblock)
 
+networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
+    logMessage = logger.createLogMessage(EventType.NodeEventType.PoolingTransactions, `Transaction is being pooled`, true);
+    logManagerConnection.emit('produce-log', logMessage);
+
+    console.log('Transaction block (to pool) sent by the network manager');
+    console.log(transactionblock);
+    
     // adding transactions to the blockchain
     try {
         const transactions = transactionblock.transactions;
@@ -64,9 +78,16 @@ networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
         blockchain.poolUnverifiedTransactionsBlocks(transactionblock);
         console.log('Transaction block added to the unverified transactions chain...');
         console.log(`Current unverified transaction blocks size : ${blockchain.getUnverifiedTransactionsBlocksSize()}`);
+
+        logData = blockchain.getBlockchainState();
+        logMessage = logger.createLogMessage(EventType.BlockchainEventType.PooledTransactions, `Transaction is pooled`, false, logData);
+        logManagerConnection.emit('produce-log', logMessage);
     } catch (error) {
         console.log('Error occured while adding transaction block to the blockchain...');
         console.log(error.message);
+
+        logMessage = logger.createLogMessage(EventType.Error, `Transaction can't be pooled`, false, logData);
+        logManagerConnection.emit('produce-log', logMessage);
     }
 })
 
@@ -94,7 +115,11 @@ networkManagerConnection.on("add-validated-blockchain", (validatedBlockchain) =>
     synchronizingBlockchain(validatedBlockchain);
     console.log("blockchain synchronized");
 })
+
 networkManagerConnection.on('forge-transaction-block', () => {
+    logMessage = logger.createLogMessage(EventType.NodeEventType.ForgingTransactionsBlock, `Transaction block is being forged`, true, logData);
+    logManagerConnection.emit('produce-log', logMessage);
+
     try {
         if(blockchain.getUnverifiedTransactionsBlocksSize() == 0) {
             throw new Error('No transaction block available to be forged');
@@ -108,13 +133,23 @@ networkManagerConnection.on('forge-transaction-block', () => {
         networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
         console.log(`Forged block on Node : ${networkManagerConnection.id} :\n and the forged block is`);
         console.log(forgedBlock);
+
+        logData = blockchain.getBlockchainState();
+        logMessage = logger.createLogMessage(EventType.BlockchainEventType.ForgedTransactionsBlock, `Transaction is forged`, false, logData);
+        logManagerConnection.emit('produce-log', logMessage);
     } catch (error) {
         console.log(`Error occured while forging a block... \n${error.message}`);
         // TODO: Emit some message to Network Manager
+
+        logMessage = logger.createLogMessage(EventType.Error, `Transaction block can't be forged`, false, logData);
+        logManagerConnection.emit('produce-log', logMessage);
     }
 })
 
 networkManagerConnection.on('validate-block', (forgedBlockData) => {
+    logMessage = logger.createLogMessage(EventType.NodeEventType.ValidatingBlock, `Transaction block is being validated`, true, logData);
+    logManagerConnection.emit('produce-log', logMessage);
+
     const forgedBlockJSON = JSON.parse(JSON.stringify(forgedBlockData));
     console.log(`Forged block received on Validation Node : ${networkManagerConnection.id} :\n ${forgedBlockJSON}`); // TODO: TBR
     

@@ -21,6 +21,14 @@ class Blockchain {
         return this.chain;
     }
 
+    getBlockchainState() {
+        return {
+            unverifiedTransactionsBlocks : this.unverifiedTransactionsBlocks,
+            unverifiedChainBlocks : this.unverifiedChainBlocks,
+            chain : this.chain
+        }
+    }
+
     // APIs
     // Pool unverified transaction blocks
     // Forge Block
@@ -68,10 +76,7 @@ class Blockchain {
         for(let chainIndex=1; chainIndex < this.getChainSize(); chainIndex++) {
             const currentBlock = this.chain[chainIndex];
             const previousBlock = this.chain[chainIndex - 1];
-            var hashchecking = currentBlock.generateHash();
             if(currentBlock.generateHash() !== currentBlock.hash) { // block computed hash not same as stored hash
-                console.log(`generatedHash is ${hashchecking}`);
-                console.log(`current block hash is ${currentBlock.hash}`);
                 console.log('Block computed hash not same as stored hash...');
                 return false;
             }
