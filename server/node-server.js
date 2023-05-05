@@ -29,7 +29,23 @@ const blockchain = new Blockchain();
 let networkManagerConnection = ioClient.connect(NM_URL, () => {
     console.log('Connection with network manager is established');
 });
-
+function synchronizingBlockchain(blockchainArg){
+    
+    blockchain.unverifiedTransactionsBlocks = blockchainArg.unverifiedTransactionsBlocks;
+    blockchain.unverifiedChainBlocks = blockchainArg.unverifiedChainBlocks;
+    console.log("blockchain received in the blockchainArg is");
+    console.log(blockchainArg);
+    blockchain.chain = []
+    blockchain.chain.push(new Block([],0));
+    for (let nIndex = 1; nIndex < blockchainArg.chain.length; nIndex++){
+        console.log("synchronizing blocks");
+        console.log(blockchainArg["chain"][nIndex]);
+        const block = Block.createBlockFromJSON(blockchainArg["chain"][nIndex]);
+        blockchain.chain.push(block);
+    }
+    console.log("blockchain after synchronization is");
+    console.log(blockchain);
+}
 networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
     console.log('Transaction block (to pool) sent by the network manager');
     console.log(transactionblock)
@@ -54,6 +70,30 @@ networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
     }
 })
 
+networkManagerConnection.on("send-validated-blockchain",() => {
+    console.log("event received of send-validated-blockchain"); // TODO : TBR
+    try {
+        console.log("send-validation hannan checkpoint"); //TODO : TBR
+        console.log(blockchain);
+        if(blockchain.validateBlockchain()){
+            console.log("hannan checkpoint 4"); //TODO : TBR
+            console.log(blockchain);
+            networkManagerConnection.emit("validated-blockchain",blockchain);
+        }
+        else{
+            networkManagerConnection.emit("validated-blockchain",{"Status":"False"});
+        }
+    }
+    catch (error) {
+        console.log("Error occurred while sending the validating blockchain");
+        console.log(error)
+    }
+})
+
+networkManagerConnection.on("add-validated-blockchain", (validatedBlockchain) => {
+    synchronizingBlockchain(validatedBlockchain);
+    console.log("blockchain synchronized");
+})
 networkManagerConnection.on('forge-transaction-block', () => {
     try {
         if(blockchain.getUnverifiedTransactionsBlocksSize() == 0) {
@@ -66,7 +106,8 @@ networkManagerConnection.on('forge-transaction-block', () => {
         blockchain.unverifiedTransactionsBlocks = []; // empting the unverified transactions pool
 
         networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
-        console.log(`Forged block on Node : ${networkManagerConnection.id} :\n ${forgedBlock.toJSON()}`);
+        console.log(`Forged block on Node : ${networkManagerConnection.id} :\n and the forged block is`);
+        console.log(forgedBlock);
     } catch (error) {
         console.log(`Error occured while forging a block... \n${error.message}`);
         // TODO: Emit some message to Network Manager

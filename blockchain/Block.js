@@ -40,11 +40,28 @@ class Block {
     }
 
     static createBlockFromJSON(blockJSON) {
+        console.log("blockJSon received is");
+        console.log(blockJSON);
+        /*
+        if (blockJSON.timestamp){
+            console.log("timestamp is there");
+        }
+        if(blockJSON.transaction){
+            console.log("transaction is true");
+        }
+        if(blockJSON.hash) {
+            console.log("hash is there");
+        }
+        if(blockJSON.previousHash){
+            console.log("previoshash is there");
+        }
         if(!(blockJSON.transactions && blockJSON.timestamp && blockJSON.hash && blockJSON.previousHash)) {
             throw new Error('Required attributes missing');
         }
+        */
+        const transactions = JSON.parse(blockJSON.transactions); 
+        const newBlock = new Block(transactions, blockJSON.previousHash, blockJSON.timestamp);
 
-        const newBlock = new Block(blockJSON.transactions, blockJSON.previousHash, blockJSON.timestamp);
         newBlock.hash = blockJSON.hash;
         return newBlock;
     }

@@ -5,6 +5,7 @@ const server = http.createServer(app);
 const process = require('process');
 const ioServer = require('socket.io')(server, { cors : { origin : "*" }});
 const bodyParser = require('body-parser');
+const { workerData } = require("worker_threads");
 
 // Injecting Middlewares
 app.use(bodyParser.json())
@@ -24,7 +25,10 @@ let validationsReceived = 0;
 let isBlockValidated = false;
 let validatorPercentage = 50;
 let stakeReward = 2;
-
+let blockchainReceived = {};
+let blockchain = {};
+let listValidBlockchainReceived = {};
+let newNode = null;
 // stake generator
 function stakegenerator(){
     return Math.floor(Math.random()*100);
@@ -33,7 +37,87 @@ function stakegenerator(){
 ioServer.on('connection', (socket) => {
     console.log(`Blockchain node with id : ${socket.id} registering with network-manager`);
     workernodes[socket.id] = {"socket":socket,"stake":stakegenerator()};
+    newNode = socket.id;
+    //copying the whole blockchain to the new node
     
+    
+    for (const nodeId in workernodes){
+        if (nodeId != socket.id){
+            const node = workernodes[nodeId]['socket'];
+            node.emit("send-validated-blockchain");
+        }
+    }
+    
+    
+    
+
+    socket.on("validated-blockchain", (validatedBlockchain) => {
+        console.log("validatedblockchain is "); //TODO: TBR
+        console.log(validatedBlockchain); //TODO: TBR
+        
+        if("Status" in validatedBlockchain) {
+            console.log("blockchain received is not valid");
+            listValidBlockchainReceived[socket.id]={"Status":validatedBlockchain["Status"],"Size":0};
+        }
+        else {
+            listValidBlockchainReceived[socket.id]={"Status":"True","Size":Object.keys(validatedBlockchain["chain"]).length};
+            blockchainReceived[socket.id] = validatedBlockchain;
+        }
+
+        if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1){
+            var validatedBlockchainReceived=0;
+            for (const status in listValidBlockchainReceived){
+                if(listValidBlockchainReceived[status]["Status"] == "True"){
+                    validatedBlockchainReceived++;
+                }
+            }
+            if (validatedBlockchainReceived >= Math.floor(2/3*Object.keys(workernodes).length)){
+                var blockchainStatus = "True";
+                blockConsensus = 0;
+                for( const socketIDs in blockchainReceived){
+                    for (let blockindex = 0; blockindex < listValidBlockchainReceived[socketIDs]["Size"]; blockindex++){
+                        for(const secondIds in blockchainReceived){
+                            if (blockchainReceived[socketIDs]["chain"][blockindex]["hash"] == blockchainReceived[secondIds]["chain"][blockindex]["hash"]){
+
+                                blockConsensus++;
+                            }
+                        }
+                        
+                        if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
+                            console.log("block is correct"); //TODO: TBR
+                        }
+                        else {
+                            console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
+                            blockchainStatus = "False";
+                            
+                        }
+                        blockConsensus = 0;
+                    }
+                    if (blockchainStatus == "True"){
+                        console.log("hannan checkpoint 3"); //TODO : TBR
+                        console.log(blockchainReceived[socketIDs]);
+                        Object.assign(blockchain, blockchainReceived[socketIDs]);
+                        console.log("blockchain is correct"); //TODO : TBR
+                        console.log("validated blockchain after validation is"); //TODO : TBR
+                        console.log(blockchain); //TODO: TBR
+                        console.log("hannan checkpoint before workernodes[newNode]['socket']");
+                        console.log(newNode);
+                        newNodeSocket = workernodes[newNode]["socket"];
+                        newNodeSocket.emit("add-validated-blockchain", blockchain);
+                        blockchain = {};
+                        listValidBlockchainReceived = {};
+                        blockchainReceived = {};
+                        newNode = null;
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            console.log("waiting for other worker nodes to send their blockchain");
+        }
+
+    })
     socket.on('disconnect', () => {
         console.log(`Blockchain node with id : ${socket.id} deregistering with network-manager`);
         delete workernodes[socket.id]
@@ -55,10 +139,12 @@ ioServer.on('connection', (socket) => {
 
         if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
             isBlockValidated = true;
+            console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
             const nodeIds = Object.keys(workernodes);
             for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
                 const node = workernodes[nodeIds[nIndex]]['socket'];
                 node.emit('commit-block');
+                
             }
         }
     })
@@ -94,6 +180,8 @@ function pickProducerNode(nodes) {
 function pickValidatorsNodes(){
     const workerNodesCopy = {};
     Object.assign(workerNodesCopy, workernodes);
+    console.log("workerndoesCopy after copying the workernodes"); //TODO: TBR
+    console.log(Object.keys(workerNodesCopy)); //TODO: TBR
     const workerNodesIds = Object.keys(workerNodesCopy);
     const sizeOfWorkerNodes = Object.keys(workerNodesCopy).length
     const sizeOfValidatorsNodes = Math.ceil(sizeOfWorkerNodes*validatorPercentage/100);
@@ -104,26 +192,34 @@ function pickValidatorsNodes(){
         sizeOfValidatorsNodes = 1;
     }
     
-    console.log("this is the else statement of the validator function");
+    console.log("this is the else statement of the validator function"); //TODO : TBR
         
     validators = {}
     for (let i = 0; i < sizeOfValidatorsNodes; i++){
+        console.log("worker nodes ids are");
+        console.log(workerNodesIds);
         const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)]
+        console.log("chosen node id is");
+        console.log(chosenNodeId);
         validators[chosenNodeId] = workerNodesCopy[chosenNodeId];
-        workerNodesIds.splice(chosenNodeId,1);
+        workerNodesIds.splice(workerNodesIds.indexOf(chosenNodeId),1);
     }
     console.log('Check point!') // TODO: TBR
-    
+    console.log("chosen validators are"); //TODO: TBR
+    console.log(Object.keys(validators)); //TODO: TBR
     return validators;
 }
 
 function conductElection() {
+    isBlockValidated = false;
     const workerNodesIds = Object.keys(workernodes);
     if(workerNodesIds.length === 0) {
         throw new Error('No worker nodes registered on the system');
     }
     
     //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
+    console.log("workers nodes before conducting the elections are:"); //TOTO: TBR
+    console.log(Object.keys(workernodes)); // TODO: TBR
     validatorNodes = pickValidatorsNodes();
     console.log('Checkpoint 2!'); // TODO: TBR
     producerNode = pickProducerNode(validatorNodes);

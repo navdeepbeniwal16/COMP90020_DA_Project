@@ -7,7 +7,9 @@ class Blockchain {
     chain = [];
 
     constructor() {
-        const block = new Block([], this.GENESIS_SEED_HASH);
+        console.log("hannan checkpoint 6 genesis seed hash value"); //TODO: TBR
+        console.log(Blockchain.GENESIS_SEED_HASH);
+        const block = new Block([], Blockchain.GENESIS_SEED_HASH);
         this.chain.push(block);
     }
 
@@ -66,8 +68,10 @@ class Blockchain {
         for(let chainIndex=1; chainIndex < this.getChainSize(); chainIndex++) {
             const currentBlock = this.chain[chainIndex];
             const previousBlock = this.chain[chainIndex - 1];
-
+            var hashchecking = currentBlock.generateHash();
             if(currentBlock.generateHash() !== currentBlock.hash) { // block computed hash not same as stored hash
+                console.log(`generatedHash is ${hashchecking}`);
+                console.log(`current block hash is ${currentBlock.hash}`);
                 console.log('Block computed hash not same as stored hash...');
                 return false;
             }
