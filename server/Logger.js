@@ -42,14 +42,20 @@ const EventType = {
         InvalidatedBlock : 'InvalidatedBlock',
         ValidatedBlockchain : 'ValidatedBlockchain',
         DiscardedBlock : 'DiscardedBlock',
-        CommittedBlock : 'CommittedBlock'
+        CommittedBlock : 'CommittedBlock',
+        CorrectiveMeasures : "CorrectiveMeasures"
+        
 
     },
     NetworkEventType: {
         RegisteredBlockchainNode: 'RegisteredBlockchainNode',
-        DeregisteredBlockchainNode: 'DeregisteredBlockchainNode'
+        DeregisteredBlockchainNode: 'DeregisteredBlockchainNode',
+        PickingProducerNode : 'PickingProducerNode',
+        PickingValidatorNode : 'PickingValidatorNode',
+        ConductingElections : "ConductingElections"
     },
     NodeEventType : {
+        AddValidatedBlockchain : "AddValidatedBlockchain",
         PoolingTransactions : 'PoolingTransactions',
         ValidatingTransactions : 'ValidatingTransactions',
         InvalidatingTransactions : 'InvalidatingTransactions',
@@ -69,5 +75,5 @@ const EventType = {
 //     GeneralProcessing : 'GeneralProcessing',
 //     BlockchainProcessing : 'BlockchainProcessing'
 // }
-
+ 
 module.exports = { Logger , NodeType, EventType };
