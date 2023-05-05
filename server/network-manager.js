@@ -29,6 +29,9 @@ let blockchainReceived = {};
 let blockchain = {};
 let listValidBlockchainReceived = {};
 let newNode = null;
+let blockednodes = [];
+let invalidvalidators = {};
+let validBlockResponses =0;
 // stake generator
 function stakegenerator(){
     return Math.floor(Math.random()*100);
@@ -136,15 +139,50 @@ ioServer.on('connection', (socket) => {
     socket.on('valid-block', () => {
         console.log(`Blockchain node with id : ${socket.id} validated the block`);
         validationsReceived++;
+        validBlockResponses++;
+        if(Object.keys(validatorNodes).length == validBlockResponses){
+            if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
+                isBlockValidated = true;
+                correctinginvalidvalidators();
+                console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
+                const nodeIds = Object.keys(workernodes);
+                for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
+                    const node = workernodes[nodeIds[nIndex]]['socket'];
+                    node.emit('commit-block');
+                    
+                }
+            }
+            else {
+                console.log("Block is not valid, Penazling Producer");
+                workernodes[producerNode]["stake"]=workernodes[producerNode]['stake'] - (2*stakeReward);
+                conductElection();
+                console.log("Sending to Producer Node (id) : "  + producerNode.id);
+                producerNode.emit('forge-transaction-block');
+            }
+        }
+    })
 
-        if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
-            isBlockValidated = true;
-            console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
-            const nodeIds = Object.keys(workernodes);
-            for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
-                const node = workernodes[nodeIds[nIndex]]['socket'];
-                node.emit('commit-block');
-                
+    socket.on('invalid-block', () => {
+        validBlockResponses++;
+        invalidvalidators[socket.id]=socket;
+        if(Object.keys(validatorNodes).length == validBlockResponses){
+            if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
+                isBlockValidated = true;
+                correctinginvalidvalidators();
+                console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
+                const nodeIds = Object.keys(workernodes);
+                for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
+                    const node = workernodes[nodeIds[nIndex]]['socket'];
+                    node.emit('commit-block');
+                    
+                }
+            }
+            else {
+                console.log("Block is not valid, Penazling Producer");
+                workernodes[producerNode]["stake"]=workernodes[producerNode]['stake'] - (2*stakeReward);
+                conductElection();
+                console.log("Sending to Producer Node (id) : "  + producerNode.id);
+                producerNode.emit('forge-transaction-block');
             }
         }
     })
@@ -212,6 +250,10 @@ function pickValidatorsNodes(){
 
 function conductElection() {
     isBlockValidated = false;
+    validationsReceived = 0;
+    validBlockResponses = 0;
+    producerNode = null;
+    validatorNodes = {};
     const workerNodesIds = Object.keys(workernodes);
     if(workerNodesIds.length === 0) {
         throw new Error('No worker nodes registered on the system');
