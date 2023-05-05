@@ -19,6 +19,14 @@ class Blockchain {
         return this.chain;
     }
 
+    getBlockchainState() {
+        return {
+            unverifiedTransactionsBlocks : this.unverifiedTransactionsBlocks,
+            unverifiedChainBlocks : this.unverifiedChainBlocks,
+            chain : this.chain
+        }
+    }
+
     // APIs
     // Pool unverified transaction blocks
     // Forge Block
