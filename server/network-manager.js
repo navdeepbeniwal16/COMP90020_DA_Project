@@ -14,7 +14,7 @@ app.use(bodyParser.json())
 
 let logManagerConnection = ioClient.connect('http://localhost:8081', { extraHeaders: { type: "publisher" }});
 
-const logger = new Logger(networkManagerConnection.id, NodeType.Blockchain);
+let logger = new Logger('nm', NodeType.NetworkManager);;
 let logMessage = null;
 let logData = {};
 
@@ -44,6 +44,7 @@ let validBlockResponses =0;
 function stakegenerator(){
     return Math.floor(Math.random()*100);
 }
+
 // registering/deregistering a blockchain node
 ioServer.on('connection', (socket) => {
     console.log(`Blockchain node with id : ${socket.id} registering with network-manager`);
@@ -137,7 +138,7 @@ ioServer.on('connection', (socket) => {
                             logMessage = logger.createLogMessage(EventType.NodeEventType.AddValidatedBlockchain, `Validated blockchain is sent to the new node to be added`, false);
                             logManagerConnection.emit('produce-log', logMessage);
                             newNodeSocket.emit("add-validated-blockchain", blockchain);
-                            logMessage = logger.createLogMessage(EventType.NodeEventType.AddValidatedBlockchain, `Blockchain node with ID; ${newNodeSocket} successfully updated and synchronized`, true);
+                            logMessage = logger.createLogMessage(EventType.NodeEventType.AddValidatedBlockchain, `Blockchain node with ID; ${newNodeSocket.id} successfully updated and synchronized`, true);
                             logManagerConnection.emit('produce-log', logMessage);
                             blockchain = {};
                             console.log("blockchain received is in blockchain status ");

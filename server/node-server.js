@@ -30,16 +30,19 @@ app.use(bodyParser.json())
 // creating a Blockchain instance (with just genesis block)
 const blockchain = new Blockchain();
 
-// establising a connection with the server
-let networkManagerConnection = ioClient.connect(NM_URL, () => {
-    console.log('Connection with network manager is established');
-});
-
-const logger = new Logger(networkManagerConnection.id, NodeType.Blockchain);
+let logger = null;
 let logMessage = null;
 let logData = {};
-logMessage = logger.createLogMessage(EventType.NetworkEventType.RegisteredBlockchainNode, `Blockchain node with id ${networkManagerConnection.id} registering onto the network`);
-logManagerConnection.emit('produce-log', logMessage);
+
+// establising a connection with the server
+let networkManagerConnection = ioClient.connect(NM_URL);
+networkManagerConnection.on('connect', () => {
+    console.log('Node Server id : ' + networkManagerConnection.id); // TODO: TBR
+    logger = new Logger(networkManagerConnection.id, NodeType.Blockchain);
+
+    logMessage = logger.createLogMessage(EventType.NetworkEventType.RegisteredBlockchainNode, `Blockchain node with id ${networkManagerConnection.id} registering onto the network`);
+    logManagerConnection.emit('produce-log', logMessage);
+})
 
 function synchronizingBlockchain(blockchainArg){
     
