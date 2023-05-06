@@ -40,6 +40,8 @@ let newNode = null;
 let blockednodes = [];
 let invalidvalidators = {};
 let validBlockResponses =0;
+let displayValidatedBlockchain = {};
+let displayflag = false;
 // stake generator
 function stakegenerator(){
     return Math.floor(Math.random()*100);
@@ -197,9 +199,67 @@ ioServer.on('connection', (socket) => {
                             //console.log("blockchain is correct"); //TODO : TBR
                             //console.log("validated blockchain after validation is"); //TODO : TBR
                             //console.log(blockchain); //TODO: TBR
+                            
                             for(nodeid in invalidvalidators){
                                 invalidvalidators[nodeid].emit("add-validated-blockchain", blockchain);
                             }
+                            
+                            invalidvalidators = {}
+                            blockchain = {};
+                            listValidBlockchainReceived = {};
+                            blockchainReceived = {};
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                console.log("waiting for other worker nodes to send their blockchain");
+            }
+        }
+        else if (displayflag) {
+            console.log("getting into the display flag condition");
+            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length){
+                var validatedBlockchainReceived=0;
+                for (const status in listValidBlockchainReceived){
+                    if(listValidBlockchainReceived[status]["Status"] == "True"){
+                        validatedBlockchainReceived++;
+                    }
+                }
+                if (validatedBlockchainReceived >= Math.floor(2/3*Object.keys(workernodes).length)){
+                    var blockchainStatus = "True";
+                    blockConsensus = 0;
+                    for( const socketIDs in blockchainReceived){
+                        for (let blockindex = 0; blockindex < listValidBlockchainReceived[socketIDs]["Size"]; blockindex++){
+                            for(const secondIds in blockchainReceived){
+                                if (blockchainReceived[socketIDs]["chain"][blockindex]["hash"] == blockchainReceived[secondIds]["chain"][blockindex]["hash"]){
+
+                                    blockConsensus++;
+                                }
+                            }
+                            
+                            if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
+                                console.log("block is correct"); //TODO: TBR
+                            }
+                            else {
+                                console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
+                                blockchainStatus = "False";
+                                
+                            }
+                            blockConsensus = 0;
+                        }
+                        if (blockchainStatus == "True"){
+                            console.log("hannan checkpoint 3"); //TODO : TBR
+                            //console.log(blockchainReceived[socketIDs]);
+                            Object.assign(displayValidatedBlockchain, blockchainReceived[socketIDs]);
+                            //console.log("blockchain is correct"); //TODO : TBR
+                            //console.log("validated blockchain after validation is"); //TODO : TBR
+                            //console.log(blockchain); //TODO: TBR
+                            /*
+                            for(nodeid in invalidvalidators){
+                                invalidvalidators[nodeid].emit("add-validated-blockchain", blockchain);
+                            }
+                            */
                             invalidvalidators = {}
                             blockchain = {};
                             listValidBlockchainReceived = {};
@@ -265,7 +325,7 @@ ioServer.on('connection', (socket) => {
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `2/3rd Majority rejected the block, Penalizing the Producer node : ${producerNode}`, true);
                 logManagerConnection.emit('produce-log', logMessage);
                 console.log("Block is not valid, Penazling Producer");
-                workernodes[producerNode]["stake"]=workernodes[producerNode]['stake'] - (2*stakeReward);
+                workernodes[producerNode.id]["stake"]=workernodes[producerNode.id]['stake'] - (2*stakeReward);
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `Conducting Re-election`, true);
                 logManagerConnection.emit('produce-log', logMessage);
                 conductElection();
@@ -299,7 +359,9 @@ ioServer.on('connection', (socket) => {
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `2/3rd Majority rejected the block, Penalizing the Producer node : ${producerNode}`, true);
                 logManagerConnection.emit('produce-log', logMessage);
                 console.log("Block is not valid, Penazling Producer");
-                workernodes[producerNode]["stake"]=workernodes[producerNode]['stake'] - (2*stakeReward);
+                console.log("producer node is "); //TODO :TBR
+                console.log(producerNode.id); //TODO :TBR
+                workernodes[producerNode.id]["stake"]=workernodes[producerNode.id]['stake'] - (2*stakeReward);
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `Conducting Re-election`, true);
                 logManagerConnection.emit('produce-log', logMessage);
                 conductElection();
@@ -431,7 +493,77 @@ function conductElection() {
     */
 }
 
-// Rest APIs to access the network-manager
+function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+} 
+
+
+
+
+app.get('/network/display-blockchain', async (req,res) => {
+    invalidvalidators = {}
+    blockchain = {};
+    listValidBlockchainReceived = {};
+    blockchainReceived = {};
+    displayflag = true;
+    for (const nodeId in workernodes){
+        const node = workernodes[nodeId]['socket'];
+        node.emit("send-validated-blockchain");
+    }
+    for (let count = 0; count <30; count++){
+        await delay(1000);
+        if (Object.keys(displayValidatedBlockchain).length != 0 && displayflag){
+            console.log("in the if condition ")
+            res.send(displayValidatedBlockchain);
+            displayflag = false;
+            displayValidatedBlockchain = {};
+            invalidvalidators = {}
+            blockchain = {};
+            listValidBlockchainReceived = {};
+            blockchainReceived = {};
+            break;
+        }
+    }   
+});
+
+app.get("/network/display-transactions",async (req,res) => {
+    invalidvalidators = {}
+    blockchain = {};
+    listValidBlockchainReceived = {};
+    blockchainReceived = {};
+    displayflag = true;
+    for (const nodeId in workernodes){
+        const node = workernodes[nodeId]['socket'];
+        node.emit("send-validated-blockchain");
+    }
+    for (let count = 0; count <30; count++){
+        await delay(1000);
+        if (Object.keys(displayValidatedBlockchain).length != 0 && displayflag){
+            console.log("in the if condition ")
+            const displayTransactions = [];
+            
+            for (let nIndex=0; nIndex<displayValidatedBlockchain.chain.length ;nIndex++){
+                parsedtransaction = JSON.parse(displayValidatedBlockchain.chain[nIndex].transactions);
+                for (iIndex = 0; iIndex < parsedtransaction.length; iIndex++){
+                    parsedtransaction[iIndex]["blockId"]=nIndex;
+                    displayTransactions.push(parsedtransaction[iIndex]);    
+                }
+                
+            }
+            console.log(displayTransactions);
+            res.send(displayTransactions);
+            displayflag = false;
+            displayValidatedBlockchain = {};
+            invalidvalidators = {}
+            blockchain = {};
+            listValidBlockchainReceived = {};
+            blockchainReceived = {};
+            break;
+        }
+    }
+})
+
+// Rest APIs to access the network-maasyncnager
 app.get('/network/nodes', (req, res) => {
     res.send({'registeredNodes' : Object.keys(workernodes)});
 });

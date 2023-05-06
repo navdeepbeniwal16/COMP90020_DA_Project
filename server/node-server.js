@@ -148,7 +148,7 @@ networkManagerConnection.on('forge-transaction-block', () => {
         const transactionsBlock = blockchain.unverifiedTransactionsBlocks[0];
         const forgedBlock = blockchain.forgeBlock(transactionsBlock);
         blockchain.unverifiedChainBlocks.push(forgedBlock);
-        blockchain.unverifiedTransactionsBlocks = []; // empting the unverified transactions pool
+        //blockchain.unverifiedTransactionsBlocks = []; // empting the unverified transactions pool
 
         networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
         console.log(`Forged block on Node : ${networkManagerConnection.id} :\n and the forged block is`);
@@ -190,7 +190,7 @@ networkManagerConnection.on('validate-block', (forgedBlockData) => {
         console.log(`Block with id : ${forgedBlock.id} is : Invalid`);
         networkManagerConnection.emit('invalid-block');
 
-        logMessage = logger.createLogMessage(EventType.Error, `Transaction block can't be validated: ${error.message} `, false);
+        logMessage = logger.createLogMessage(EventType.Error, `Transaction block is invalid `, false);
         logManagerConnection.emit('produce-log', logMessage);
     }
 })
@@ -201,7 +201,7 @@ networkManagerConnection.on('commit-block', () => {
 
     console.log(`Commit message received by Node ${networkManagerConnection.id}`);
     let blockToCommit = null;
-
+    
     if(blockchain.unverifiedChainBlocks.length > 0) {
         blockToCommit = blockchain.unverifiedChainBlocks[0];
     } else {
@@ -224,6 +224,39 @@ networkManagerConnection.on('commit-block', () => {
         logManagerConnection.emit('produce-log', logMessage);
     }
 })
+
+function recomputetransactions(blocknumber, changedTransaction){
+    blockchain.chain[blocknumber-1].transactions[0]=changedTransaction
+    blockchain.chain[blocknumber-1]=new Block(blockchain.chain[blocknumber-1].transactions, blockchain.chain[blocknumber-1].previousHash, blockchain.chain[blocknumber-1].timestamp,blockchain.chain[blocknumber-1].nonce);
+    for (let nIndex = blocknumber; nIndex < blockchain.chain.length; nIndex++){
+        blockchain.chain[nIndex]= new Block(blockchain.chain[nIndex].transactions, blockchain.chain[nIndex-1].hash, blockchain.chain[nIndex].timestamp,blockchain.chain[nIndex].nonce);    
+    }
+}
+function recomputeblocks(blocknumber, previousHash, hash){
+    let setprevioushash;
+    let sethash;
+
+    if(previousHash != null && hash == null){
+            blockchain.chain[blocknumber-1]= new Block(blockchain.chain[blocknumber-1].transactions, previousHash, blockchain.chain[blocknumber-1].timestamp,blockchain.chain[blocknumber-1].nonce);
+    }
+    
+    else if(previousHash == null && hash != null){
+            blockchain.chain[blocknumber-1].hash = hash;
+    }
+    else if(previousHash !=null && hash != null){
+        blockchain.chain[blocknumber-1].hash = hash;
+        blockchain.chain[blocknumber-1].previousHash = previousHash;
+    }
+
+    for (let nIndex = blocknumber; nIndex < blockchain.chain.length; nIndex++){
+        console.log("entered the for loop")
+        blockchain.chain[nIndex]= new Block(blockchain.chain[nIndex].transactions, blockchain.chain[nIndex-1].hash, blockchain.chain[nIndex].timestamp,blockchain.chain[nIndex].nonce);    
+    }
+    if(hash != null){
+        blockchain.chain[blocknumber-1].hash = hash;
+    }
+
+}
 
 /*
 =================================                           REST ENDPOINTS                           =================================                 
@@ -249,6 +282,51 @@ app.post('/blockchain/transaction-blocks', (req,res) => {
     } catch (error) {
         return res.status(500).send();
     }
+})
+
+app.post('/test/changing-blocks', (req,res) => {
+    const body = req.body;
+    const blockNumber = body.blockNumber;
+    const previousHash = body.previousHash;
+    const hash = body.hash;
+
+    try {
+        if(blockNumber == null){
+            console.log("Please provide the blocknumber");
+        }
+        else{
+            recomputeblocks(blockNumber, previousHash, hash);
+        }
+        return res.status(201).send();
+    }
+    catch (error){
+        console.log(error);
+        return res.status(500).send();
+    }
+
+})
+
+app.post('/test/changing-transactions', (req,res) => {
+    const body = req.body;
+    const blockNumber = body.blockNumber;
+    const changedTransaction = body.transaction;
+    try {
+        if(blockNumber == null){
+            console.log("Please provide the blocknumber");
+        }
+        else if(changedTransaction == null){
+            console.log("please provide the transaction to be changed")
+        }
+        else{
+            recomputetransactions(blockNumber, changedTransaction);
+        }
+        return res.status(201).send();
+    }
+    catch (error){
+        console.log(error);
+        return res.status(500).send();
+    }
+    
 })
 
 // TODO: API to validate the blockchain
