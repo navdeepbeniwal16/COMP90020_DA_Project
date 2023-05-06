@@ -84,12 +84,19 @@ ioServer.on('connection', (socket) => {
             logMessage = logger.createLogMessage(EventType.BlockchainEventType.ValidatedBlockchain, `Blockchain node with id ${socket.id} successfully sent its validated blockchain`, true);
             logManagerConnection.emit('produce-log', logMessage);
         }
+
+        var validatedBlockchainReceived=0;
+        for (const status in listValidBlockchainReceived){
+            if(listValidBlockchainReceived[status]["Status"] == "True"){
+                validatedBlockchainReceived++;
+            }
+        }
         
         if(newNode){
-            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1){
+            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1 || validatedBlockchainReceived >=Math.floor(2/3*Object.keys(workernodes).length) ){
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.ValidatedBlockchain, `Received responses from all nodes in the network`, true);
                 logManagerConnection.emit('produce-log', logMessage);
-                var validatedBlockchainReceived=0;
+                validatedBlockchainReceived=0;
                 for (const status in listValidBlockchainReceived){
                     if(listValidBlockchainReceived[status]["Status"] == "True"){
                         validatedBlockchainReceived++;
@@ -151,8 +158,8 @@ ioServer.on('connection', (socket) => {
         }
         else if (Object.keys(invalidvalidators).length != 0){
             let remainingNodes = Object.keys(workernodes).length - Object.keys(invalidvalidators).length
-            if(Object.keys(listValidBlockchainReceived).length == remainingNodes){
-                var validatedBlockchainReceived=0;
+            if(Object.keys(listValidBlockchainReceived).length == remainingNodes || validatedBlockchainReceived >= Math.floor(2/3*remainingNodes)){
+                validatedBlockchainReceived=0;
                 for (const status in listValidBlockchainReceived){
                     if(listValidBlockchainReceived[status]["Status"] == "True"){
                         validatedBlockchainReceived++;
@@ -201,8 +208,8 @@ ioServer.on('connection', (socket) => {
             }
         }
         else if (displayflag) {
-            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length){
-                var validatedBlockchainReceived=0;
+            if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length || validatedBlockchainReceived >=Math.floor(2/3*Object.keys(workernodes).length)){
+                validatedBlockchainReceived=0;
                 for (const status in listValidBlockchainReceived){
                     if(listValidBlockchainReceived[status]["Status"] == "True"){
                         validatedBlockchainReceived++;
@@ -275,7 +282,7 @@ ioServer.on('connection', (socket) => {
         console.log(`Blockchain node with id : ${socket.id} validated the block`);
         validationsReceived++;
         validBlockResponses++;
-        if(Object.keys(validatorNodes).length == validBlockResponses){
+        //if(Object.keys(validatorNodes).length == validBlockResponses){
             if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
                 isBlockValidated = true;
                 logMessage = logger.createLogMessage(EventType.NodeEventType.ValidatingBlock, `2/3 majority validators have successfully valided the block`, true);
@@ -306,13 +313,13 @@ ioServer.on('connection', (socket) => {
                 logManagerConnection.emit('produce-log', logMessage);
                 producerNode.emit('forge-transaction-block');
             }
-        }
+        //}
     })
 
     socket.on('invalid-block', () => {
         validBlockResponses++;
         invalidvalidators[socket.id]=socket;
-        if(Object.keys(validatorNodes).length == validBlockResponses){
+        //if(Object.keys(validatorNodes).length == validBlockResponses){
             if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
                 isBlockValidated = true;
                 correctinginvalidvalidators();
@@ -339,7 +346,7 @@ ioServer.on('connection', (socket) => {
                 console.log("Sending to Producer Node (id) : "  + producerNode.id);
                 producerNode.emit('forge-transaction-block');
             }
-        }
+       // }
     })
 })
 
