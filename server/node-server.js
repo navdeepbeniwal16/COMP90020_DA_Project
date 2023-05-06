@@ -37,7 +37,6 @@ let logData = {};
 // establising a connection with the server
 let networkManagerConnection = ioClient.connect(NM_URL);
 networkManagerConnection.on('connect', () => {
-    console.log('Node Server id : ' + networkManagerConnection.id); // TODO: TBR
     logger = new Logger(networkManagerConnection.id, NodeType.Blockchain);
 
     logMessage = logger.createLogMessage(EventType.NetworkEventType.RegisteredBlockchainNode, `Blockchain node with id ${networkManagerConnection.id} registering onto the network`);
@@ -48,18 +47,16 @@ function synchronizingBlockchain(blockchainArg){
     
     blockchain.unverifiedTransactionsBlocks = blockchainArg.unverifiedTransactionsBlocks;
     blockchain.unverifiedChainBlocks = blockchainArg.unverifiedChainBlocks;
-    console.log("blockchain received in the blockchainArg is");
-    console.log(blockchainArg);
+    
     blockchain.chain = []
     blockchain.chain.push(new Block([],0));
     for (let nIndex = 1; nIndex < blockchainArg.chain.length; nIndex++){
-        console.log("synchronizing blocks");
-        console.log(blockchainArg["chain"][nIndex]);
+        
         const block = Block.createBlockFromJSON(blockchainArg["chain"][nIndex]);
         blockchain.chain.push(block);
     }
-    console.log("blockchain after synchronization is");
-    console.log(blockchain);
+    //console.log("blockchain after synchronization is");
+    //console.log(blockchain);
 }
 
 networkManagerConnection.on('pool-transaction-block', (transactionblock) => {
@@ -99,13 +96,8 @@ networkManagerConnection.on("send-validated-blockchain",() => {
     logMessage = logger.createLogMessage(EventType.NodeEventType.SendingValidatedBlockchain, `Sending a valid copy of the chain`, true);
     logManagerConnection.emit('produce-log', logMessage);
 
-    console.log("event received of send-validated-blockchain"); // TODO : TBR
     try {
-        console.log("send-validation hannan checkpoint"); //TODO : TBR
-        console.log(blockchain);
         if(blockchain.validateBlockchain()){
-            console.log("hannan checkpoint 4"); //TODO : TBR
-            console.log(blockchain);
             networkManagerConnection.emit("validated-blockchain",blockchain);
 
             logMessage = logger.createLogMessage(EventType.BlockchainEventType.SendValidatedBlockchain, `Validated blockchain is sent`, false, blockchain.getBlockchainState());
@@ -151,8 +143,7 @@ networkManagerConnection.on('forge-transaction-block', () => {
         //blockchain.unverifiedTransactionsBlocks = []; // empting the unverified transactions pool
 
         networkManagerConnection.emit('forged-block', forgedBlock.toJSON());
-        console.log(`Forged block on Node : ${networkManagerConnection.id} :\n and the forged block is`);
-        console.log(forgedBlock);
+
 
         logMessage = logger.createLogMessage(EventType.BlockchainEventType.ForgedTransactionsBlock, `Transaction is forged`, false, blockchain.getBlockchainState());
         logManagerConnection.emit('produce-log', logMessage);
@@ -170,11 +161,10 @@ networkManagerConnection.on('validate-block', (forgedBlockData) => {
     logManagerConnection.emit('produce-log', logMessage);
 
     const forgedBlockJSON = JSON.parse(JSON.stringify(forgedBlockData));
-    console.log(`Forged block received on Validation Node : ${networkManagerConnection.id} :\n ${forgedBlockJSON}`); // TODO: TBR
+    console.log(`Forged block received on Validation Node : ${networkManagerConnection.id} :\n`); // TODO: TBR
     
     const transactionBlock = blockchain.unverifiedTransactionsBlocks[0]; // TODO: Fix problem here
-    console.log('Transaction block (on validation node) :')
-    console.log(transactionBlock)
+    
 
     const forgedBlock = Block.createBlockFromJSON(forgedBlockJSON);
     if(blockchain.validateBlock(transactionBlock, forgedBlock)) {
@@ -249,7 +239,6 @@ function recomputeblocks(blocknumber, previousHash, hash){
     }
 
     for (let nIndex = blocknumber; nIndex < blockchain.chain.length; nIndex++){
-        console.log("entered the for loop")
         blockchain.chain[nIndex]= new Block(blockchain.chain[nIndex].transactions, blockchain.chain[nIndex-1].hash, blockchain.chain[nIndex].timestamp,blockchain.chain[nIndex].nonce);    
     }
     if(hash != null){

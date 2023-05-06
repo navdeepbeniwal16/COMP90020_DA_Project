@@ -58,8 +58,6 @@ ioServer.on('connection', (socket) => {
     //copying the whole blockchain to the new node
     logMessage = logger.createLogMessage(EventType.NetworkEventType.RegisteredBlockchainNode, `Blockchain node with id ${socket.id} successfully registered onto the network`, true);
     logManagerConnection.emit('produce-log', logMessage);
-    console.log("listvalidblockchainrecieved in the connecting phase");
-    console.log(Object.keys(listValidBlockchainReceived).length);
     for (const nodeId in workernodes){
         if (nodeId != socket.id){
             const node = workernodes[nodeId]['socket'];
@@ -88,8 +86,6 @@ ioServer.on('connection', (socket) => {
         }
         
         if(newNode){
-            console.log("listvalidateblockchainreceived is ");
-            console.log(listValidBlockchainReceived);
             if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length-1){
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.ValidatedBlockchain, `Received responses from all nodes in the network`, true);
                 logManagerConnection.emit('produce-log', logMessage);
@@ -116,7 +112,7 @@ ioServer.on('connection', (socket) => {
                             }
                             
                             if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
-                                console.log("block is correct"); //TODO: TBR
+                                //console.log("block is correct"); //TODO: TBR
                             }
                             else {
                                 console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
@@ -126,16 +122,9 @@ ioServer.on('connection', (socket) => {
                             blockConsensus = 0;
                         }
                         if (blockchainStatus == "True"){
-                            //console.log("hannan checkpoint 3"); //TODO : TBR
                             logMessage = logger.createLogMessage(EventType.BlockchainEventType.ValidatedBlockchain, `Blockchain node with id ${socketIDs} is selected to have globally validated blockchain by 2/3 majority consensus`, false);
                             logManagerConnection.emit('produce-log', logMessage);
-                            console.log(blockchainReceived[socketIDs]);
                             Object.assign(blockchain, blockchainReceived[socketIDs]);
-                            //console.log("blockchain is correct"); //TODO : TBR
-                            //console.log("validated blockchain after validation is"); //TODO : TBR
-                            //console.log(blockchain); //TODO: TBRBlockchainEventType.ValidatedBlockchain
-                            //console.log("hannan checkpoint before workernodes[newNode]['socket']");
-                            //console.log(newNode);
                             newNodeSocket = workernodes[newNode]["socket"];
                             logMessage = logger.createLogMessage(EventType.NodeEventType.AddValidatedBlockchain, `Validated blockchain is sent to the new node to be added`, false);
                             logManagerConnection.emit('produce-log', logMessage);
@@ -143,10 +132,10 @@ ioServer.on('connection', (socket) => {
                             logMessage = logger.createLogMessage(EventType.NodeEventType.AddValidatedBlockchain, `Blockchain node with ID; ${newNodeSocket.id} successfully updated and synchronized`, true);
                             logManagerConnection.emit('produce-log', logMessage);
                             blockchain = {};
-                            console.log("blockchain received is in blockchain status ");
+
                             
                             listValidBlockchainReceived = {};
-                            console.log(Object.keys(listValidBlockchainReceived).length);
+
                             blockchainReceived = {};
                             newNode = null;
                             break;
@@ -161,7 +150,6 @@ ioServer.on('connection', (socket) => {
             }
         }
         else if (Object.keys(invalidvalidators).length != 0){
-            console.log("getting into the second condition");
             let remainingNodes = Object.keys(workernodes).length - Object.keys(invalidvalidators).length
             if(Object.keys(listValidBlockchainReceived).length == remainingNodes){
                 var validatedBlockchainReceived=0;
@@ -183,7 +171,7 @@ ioServer.on('connection', (socket) => {
                             }
                             
                             if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
-                                console.log("block is correct"); //TODO: TBR
+                                //console.log("block is correct"); //TODO: TBR
                             }
                             else {
                                 console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
@@ -193,12 +181,7 @@ ioServer.on('connection', (socket) => {
                             blockConsensus = 0;
                         }
                         if (blockchainStatus == "True"){
-                            //console.log("hannan checkpoint 3"); //TODO : TBR
-                            //console.log(blockchainReceived[socketIDs]);
                             Object.assign(blockchain, blockchainReceived[socketIDs]);
-                            //console.log("blockchain is correct"); //TODO : TBR
-                            //console.log("validated blockchain after validation is"); //TODO : TBR
-                            //console.log(blockchain); //TODO: TBR
                             
                             for(nodeid in invalidvalidators){
                                 invalidvalidators[nodeid].emit("add-validated-blockchain", blockchain);
@@ -218,7 +201,6 @@ ioServer.on('connection', (socket) => {
             }
         }
         else if (displayflag) {
-            console.log("getting into the display flag condition");
             if(Object.keys(listValidBlockchainReceived).length == Object.keys(workernodes).length){
                 var validatedBlockchainReceived=0;
                 for (const status in listValidBlockchainReceived){
@@ -239,7 +221,7 @@ ioServer.on('connection', (socket) => {
                             }
                             
                             if(blockConsensus >=Math.floor(2/3*Object.keys(workernodes).length)){
-                                console.log("block is correct"); //TODO: TBR
+                                //console.log("block is correct"); //TODO: TBR
                             }
                             else {
                                 console.log(`consensus not reached. ${socketIDs} is a faulty blockchain`);
@@ -249,17 +231,8 @@ ioServer.on('connection', (socket) => {
                             blockConsensus = 0;
                         }
                         if (blockchainStatus == "True"){
-                            console.log("hannan checkpoint 3"); //TODO : TBR
-                            //console.log(blockchainReceived[socketIDs]);
+                            console.log("hannan checkpoint 3");
                             Object.assign(displayValidatedBlockchain, blockchainReceived[socketIDs]);
-                            //console.log("blockchain is correct"); //TODO : TBR
-                            //console.log("validated blockchain after validation is"); //TODO : TBR
-                            //console.log(blockchain); //TODO: TBR
-                            /*
-                            for(nodeid in invalidvalidators){
-                                invalidvalidators[nodeid].emit("add-validated-blockchain", blockchain);
-                            }
-                            */
                             invalidvalidators = {}
                             blockchain = {};
                             listValidBlockchainReceived = {};
@@ -307,7 +280,6 @@ ioServer.on('connection', (socket) => {
                 isBlockValidated = true;
                 logMessage = logger.createLogMessage(EventType.NodeEventType.ValidatingBlock, `2/3 majority validators have successfully valided the block`, true);
                 logManagerConnection.emit('produce-log', logMessage);
-                //console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
                 const nodeIds = Object.keys(workernodes);
                 logMessage = logger.createLogMessage(EventType.NodeEventType.ValidatingBlock, `Commiting the block to the blockchain`, true);
                 logManagerConnection.emit('produce-log', logMessage);
@@ -344,7 +316,6 @@ ioServer.on('connection', (socket) => {
             if(validationsReceived >= (2/3) * Object.keys(validatorNodes).length && !isBlockValidated) {
                 isBlockValidated = true;
                 correctinginvalidvalidators();
-                //console.log("checking valid-block listener hannan checkpoint"); //TODO : TBR
                 const nodeIds = Object.keys(workernodes);
                 for(let nIndex=0; nIndex < nodeIds.length; nIndex++) {
                     const node = workernodes[nodeIds[nIndex]]['socket'];
@@ -359,8 +330,6 @@ ioServer.on('connection', (socket) => {
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `2/3rd Majority rejected the block, Penalizing the Producer node : ${producerNode}`, true);
                 logManagerConnection.emit('produce-log', logMessage);
                 console.log("Block is not valid, Penazling Producer");
-                console.log("producer node is "); //TODO :TBR
-                console.log(producerNode.id); //TODO :TBR
                 workernodes[producerNode.id]["stake"]=workernodes[producerNode.id]['stake'] - (2*stakeReward);
                 logMessage = logger.createLogMessage(EventType.BlockchainEventType.CorrectiveMeasures, `Conducting Re-election`, true);
                 logManagerConnection.emit('produce-log', logMessage);
@@ -375,7 +344,6 @@ ioServer.on('connection', (socket) => {
 })
 
 function getTransactionBlockLength() {
-    console.log(`${transactionqueue.length}`);
     return transactionqueue.length;
 }
 
@@ -400,7 +368,6 @@ function pickProducerNode(nodes) {
         throw new Error('No worker nodes registered on the system');
     }
 
-    //console.log('Checkpoint 3'); // TODO: TBR
     let MAX_STAKE = 0;
     let producerSocketId = null;
     logMessage = logger.createLogMessage(EventType.NetworkEventType.PickingProducerNode, `Selecting the Producer`, true);
@@ -413,8 +380,6 @@ function pickProducerNode(nodes) {
     }
     logMessage = logger.createLogMessage(EventType.NetworkEventType.PickingProducerNode, `Blockchain Node with ID: ${producerSocketId} is selected as a producer. Its stake is ${MAX_STAKE}`, true);
     logManagerConnection.emit('produce-log', logMessage);
-    //console.log('Checkpoint 4'); // TODO: TBR
-    //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
     workernodes[producerSocketId]['stake']=workernodes[producerSocketId]['stake']+stakeReward;
     const selectedProducerNode = nodes[producerSocketId]['socket']
     delete validatorNodes[producerSocketId];
@@ -424,8 +389,6 @@ function pickProducerNode(nodes) {
 function pickValidatorsNodes(){
     const workerNodesCopy = {};
     Object.assign(workerNodesCopy, workernodes);
-    //console.log("workerndoesCopy after copying the workernodes"); //TODO: TBR
-    //console.log(Object.keys(workerNodesCopy)); //TODO: TBR
     const workerNodesIds = Object.keys(workerNodesCopy);
     const sizeOfWorkerNodes = Object.keys(workerNodesCopy).length
     const sizeOfValidatorsNodes = Math.ceil(sizeOfWorkerNodes*validatorPercentage/100);
@@ -438,24 +401,16 @@ function pickValidatorsNodes(){
         sizeOfValidatorsNodes = 1;
     }
     
-    //console.log("this is the else statement of the validator function"); //TODO : TBR
     logMessage = logger.createLogMessage(EventType.NetworkEventType.PickingValidatorNode, `Selecting the Validator Nodes`, true);
     logManagerConnection.emit('produce-log', logMessage);
     validators = {}
     for (let i = 0; i < sizeOfValidatorsNodes; i++){
-        console.log("worker nodes ids are");
-        console.log(workerNodesIds);
         const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
         logMessage = logger.createLogMessage(EventType.NetworkEventType.PickingValidatorNode, `Blockchain Node with ID: ${chosenNodeId} is selected as a validator.`, true);
         logManagerConnection.emit('produce-log', logMessage);
-        console.log("chosen node id is");
-        console.log(chosenNodeId);
         validators[chosenNodeId] = workerNodesCopy[chosenNodeId];
         workerNodesIds.splice(workerNodesIds.indexOf(chosenNodeId),1);
     }
-    //console.log('Check point!') // TODO: TBR
-    //console.log("chosen validators are"); //TODO: TBR
-    //console.log(Object.keys(validators)); //TODO: TBR
     return validators;
 }
 
@@ -473,24 +428,11 @@ function conductElection() {
         logManagerConnection.emit('produce-log', logMessage);
         throw new Error('No worker nodes registered on the system');
     }
-    
-    //const chosenNodeId = workerNodesIds[Math.floor(Math.random() * workerNodesIds.length)];
-    //console.log("workers nodes before conducting the elections are:"); //TOTO: TBR
-    //console.log(Object.keys(workernodes)); // TODO: TBR
     validatorNodes = pickValidatorsNodes();
-    //console.log('Checkpoint 2!'); // TODO: TBR
     producerNode = pickProducerNode(validatorNodes);
 
     console.log(`Producer Node : ${producerNode.id}`);
     console.log(`Validator Nodes : ${Object.keys(validatorNodes)}`);
-
-    /*
-    for(let nIndex=0; nIndex < workerNodesIds.length; nIndex++) {
-        if(workerNodesIds[nIndex] !== chosenNodeId) {
-            validatorNodes.push(workerNodesIds[nIndex]);
-        }
-    }
-    */
 }
 
 function delay(time) {
@@ -513,7 +455,6 @@ app.get('/network/display-blockchain', async (req,res) => {
     for (let count = 0; count <30; count++){
         await delay(1000);
         if (Object.keys(displayValidatedBlockchain).length != 0 && displayflag){
-            console.log("in the if condition ")
             res.send(displayValidatedBlockchain);
             displayflag = false;
             displayValidatedBlockchain = {};
@@ -539,7 +480,6 @@ app.get("/network/display-transactions",async (req,res) => {
     for (let count = 0; count <30; count++){
         await delay(1000);
         if (Object.keys(displayValidatedBlockchain).length != 0 && displayflag){
-            console.log("in the if condition ")
             const displayTransactions = [];
             
             for (let nIndex=0; nIndex<displayValidatedBlockchain.chain.length ;nIndex++){
@@ -550,7 +490,6 @@ app.get("/network/display-transactions",async (req,res) => {
                 }
                 
             }
-            console.log(displayTransactions);
             res.send(displayTransactions);
             displayflag = false;
             displayValidatedBlockchain = {};
